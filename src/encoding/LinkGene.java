@@ -2,8 +2,6 @@ package encoding;
 
 import innovation.Innovations;
 
-import java.util.List;
-
 public class LinkGene {
 
     private final int id;
@@ -15,7 +13,7 @@ public class LinkGene {
 
     public LinkGene(int sourceNodeId, int destinationNodeId, Innovations innovations) {
 
-        this.id = innovations.getNewLinkId(sourceNodeId, destinationNodeId);
+        this.id = innovations.newLink(sourceNodeId, destinationNodeId);
         if (this.id == -1)
             System.err.println("Illegal link created: (" + sourceNodeId + ", " + destinationNodeId + ")");
 

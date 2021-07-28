@@ -9,12 +9,12 @@ public class Genome {
 
     private static int lastId = 0;
 
-    private List<NodeGene> nodeGenes = new ArrayList<>();
-    private List<LinkGene> linkGenes = new ArrayList<>();
+    private final List<NodeGene> nodeGenes = new ArrayList<>();
+    private final List<LinkGene> linkGenes = new ArrayList<>();
 
-    private List<NodeGene> inputNodeGenes = new ArrayList<>();
-    private List<NodeGene> outputNodeGenes = new ArrayList<>();
-    private List<NodeGene> hiddenNodeGenes = new ArrayList<>();
+    private final List<NodeGene> inputNodeGenes = new ArrayList<>();
+    private final List<NodeGene> outputNodeGenes = new ArrayList<>();
+    private final List<NodeGene> hiddenNodeGenes = new ArrayList<>();
     private NodeGene biasNodeGene = null;
 
     int id = 0;
