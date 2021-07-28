@@ -28,30 +28,10 @@ public class Mutation {
         // Copy the genome
         Genome mutatedGenome = new Genome(genome);
 
-        // The links already used in the genome
-        //- Set<LinkGene> genomeLinks = new HashSet<>(mutatedGenome.getLinkGenes());
-        // The links in use by the population of genomes
-
-        //- Set<Pair<Integer, Integer>> populationLinks = new HashSet<>(innovations.getLinksInUse().keySet());
-
         System.out.println("Size (genomeLinks): " + mutatedGenome.getLinkGenes().size());
         System.out.println("Size (Links in use) - Before: " + innovations.getLinksInUse().size());
 
-        // Remove the links found in the genome from the set of links in the population, to only leave the set of
-        // links not expressed in the current genome
-
-        //- for (LinkGene genomeLink : genomeLinks)
-        //-     populationLinks.remove(new Pair<>(genomeLink.getSourceNodeId(), genomeLink.getDestinationNodeId()));
-
-
-        // Assemble all possible links for this genome
-
-        //- List<Pair<Integer, Integer>> possibleLinks = new ArrayList<>(populationLinks);
-        //- possibleLinks.addAll(innovations.getAvailableLinks()); // Links not found in the population
-
-        //*
         List<Pair<Integer, Integer>> possibleLinks = new ArrayList<>(mutatedGenome.generatePossibleLinks());
-        //*
 
         System.out.println("Possible links:\n" + possibleLinks + "\nSize (possibleLinks): " + possibleLinks.size() + "\n");
         System.out.println("MUTATED - Before:\n " + mutatedGenome);
