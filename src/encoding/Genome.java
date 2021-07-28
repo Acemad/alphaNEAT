@@ -181,6 +181,11 @@ public class Genome {
         return linkGenes;
     }
 
+    public int calculatePossibleLinks() {
+        return numberOfPossibleLinks(inputNodeGenes.size(), outputNodeGenes.size(), hiddenNodeGenes.size(),
+                biasNodeGene != null);
+    }
+
     /**
      * Computes the number of possible links using the formula:
      *  O² + h² + iO + h(i + 4) + h + O

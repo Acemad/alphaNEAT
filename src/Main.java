@@ -49,14 +49,16 @@ public class Main {
             genome = Mutation.addNewLink(genome, innovations);
         }*/
 
-        System.out.println("All Possible Links (Calculated) - Before: " + Genome.numberOfPossibleLinks(3, 2, 0, false) + "\n");
+
         /*for (int i = 0; i < 10; i++) {
             genome = Mutation.addNewNode(genome, innovations);
         }*/
         for (Genome gen : pop) {
-            Mutation.addNewNode(Mutation.addNewLink(gen, innovations), innovations);
+            System.out.println("All Possible Links (Calculated) - Before: " + gen.calculatePossibleLinks() + "\n");
+            gen = Mutation.addNewLink(Mutation.addNewNode(gen, innovations), innovations);
+            System.out.println("All Possible Links (Calculated) - After : " + gen.calculatePossibleLinks() + "\n");
         }
-        System.out.println("All Possible Links (Calculated) - After : " + Genome.numberOfPossibleLinks(3, 2, 1, false) + "\n");
+
 
         System.out.println("\n" + genome.generatePossibleLinks());
         // Pair<Integer, Integer> pair = new Pair<>(5,6);
