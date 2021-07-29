@@ -19,7 +19,7 @@ public class Population {
         for (int i = 0; i < count; i++)
             population.add(new Genome(innovations, connectionProbability, biasConnectionProbability));
 
-        System.out.println("\n" + innovations.getLinksInUse());
+        // System.out.println("\n" + innovations.getLinksInUse());
     }
 
     @Override

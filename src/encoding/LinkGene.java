@@ -2,14 +2,16 @@ package encoding;
 
 import innovation.Innovations;
 
-public class LinkGene {
+import java.util.Objects;
+
+public class LinkGene implements Comparable<LinkGene> {
 
     private final int id;
     private final int sourceNodeId;
     private final int destinationNodeId;
     private double weight;
     private boolean enabled = true;
-    private boolean isLoop;
+    private final boolean isLoop;
 
     public LinkGene(int sourceNodeId, int destinationNodeId, Innovations innovations) {
 
@@ -37,14 +39,13 @@ public class LinkGene {
 
     @Override
     public String toString() {
-        return "{" +
-                "id=" + id +
-                ", sourceNodeId=" + sourceNodeId +
-                ", destinationNodeId=" + destinationNodeId +
-                ", w=" + weight +
+        return "(" +
+                id + ", " +
+                sourceNodeId + "->" + destinationNodeId +
                 (enabled ? ", enabled" : ", disabled") +
-                (isLoop ? ", loop" : ", notLoop") +
-                '}';
+                (isLoop ? ", loop, " : ", notLoop, ") +
+                weight +
+                ')';
     }
 
     public boolean isEnabled() {
@@ -71,7 +72,29 @@ public class LinkGene {
         this.enabled = false;
     }
 
+    public void enable() {
+        this.enabled = true;
+    }
+
     public void setWeight(double weight) {
         this.weight = weight;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LinkGene linkGene = (LinkGene) o;
+        return id == linkGene.id && sourceNodeId == linkGene.sourceNodeId && destinationNodeId == linkGene.destinationNodeId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, sourceNodeId, destinationNodeId);
+    }
+
+    @Override
+    public int compareTo(LinkGene linkGene) {
+        return Integer.compare(id, linkGene.id);
     }
 }

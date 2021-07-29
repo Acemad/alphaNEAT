@@ -28,13 +28,13 @@ public class Mutation {
         // Copy the genome
         Genome mutatedGenome = new Genome(genome);
 
-        System.out.println("Size (genomeLinks): " + mutatedGenome.getLinkGenes().size());
-        System.out.println("Size (Links in use) - Before: " + innovations.getLinksInUse().size());
+        // System.out.println("Size (genomeLinks): " + mutatedGenome.getLinkGenes().size());
+        // System.out.println("Size (Links in use) - Before: " + innovations.getLinksInUse().size());
 
         List<Pair<Integer, Integer>> possibleLinks = new ArrayList<>(mutatedGenome.generatePossibleLinks());
 
-        System.out.println("Possible links:\n" + possibleLinks + "\nSize (possibleLinks): " + possibleLinks.size() + "\n");
-        System.out.println("MUTATED - Before:\n " + mutatedGenome);
+        // System.out.println("Possible links:\n" + possibleLinks + "\nSize (possibleLinks): " + possibleLinks.size() + "\n");
+        // System.out.println("MUTATED - Before:\n " + mutatedGenome);
 
         if (possibleLinks.size() == 0)
             return mutatedGenome;
@@ -43,8 +43,8 @@ public class Mutation {
         Pair<Integer, Integer> selectedLink = possibleLinks.get(innovations.getRandomInt(possibleLinks.size()));
         mutatedGenome.getLinkGenes().add(new LinkGene(selectedLink.getA(), selectedLink.getB(), innovations));
 
-        System.out.println("MUTATED - After:\n " + mutatedGenome);
-
+        // System.out.println("MUTATED - After:\n " + mutatedGenome);
+        // mutatedGenome.getLinkGenes().sort(null);
         // Return the mutated genome
         return mutatedGenome;
     }
@@ -68,9 +68,9 @@ public class Mutation {
 
         } while (!found);
 
-        System.out.println("MUTATED (ADD Node) - Before:\n" + mutatedGenome);
-        System.out.println("Num Available Links - Before: Available: " + mutatedGenome.generatePossibleLinks().size() +
-                 " LinksInUse: " + links.size());
+        // System.out.println("MUTATED (ADD Node) - Before:\n" + mutatedGenome);
+        // System.out.println("Num Available Links - Before: Available: " + mutatedGenome.generatePossibleLinks().size() +
+        //          " LinksInUse: " + links.size());
 
         selectedLink.disable();
         NodeGene newNode = new NodeGene(innovations.newHiddenNode(
@@ -84,12 +84,20 @@ public class Mutation {
         mutatedGenome.addNewLink(firstLink);
         mutatedGenome.addNewLink(secondLink);
 
-        System.out.println("MUTATED (ADD Node) - After:\n" + mutatedGenome);
-        System.out.println("Num Available Links - After: Available: " + mutatedGenome.generatePossibleLinks().size() +
-                " LinksInUse: " + mutatedGenome.getLinkGenes().size());
+        // mutatedGenome.getLinkGenes().sort(null);
+        // mutatedGenome.getNodeGenes().sort(null);
+
+        // System.out.println("MUTATED (ADD Node) - After:\n" + mutatedGenome);
+        // System.out.println("Num Available Links - After: Available: " + mutatedGenome.generatePossibleLinks().size() +
+        //         " LinksInUse: " + mutatedGenome.getLinkGenes().size());
 
         // Add to genome
         return mutatedGenome;
+
+    }
+
+
+    public static void weightMutation() {
 
     }
 

@@ -3,7 +3,7 @@ package encoding;
 import activations.ActivationFunction;
 import activations.Sigmoid;
 
-public class NodeGene {
+public class NodeGene implements Comparable<NodeGene> {
 
     private final int id;
     private final NodeType type;
@@ -28,14 +28,19 @@ public class NodeGene {
 
     @Override
     public String toString() {
-        return "{" +
-                "id=" + id +
-                ", type=" + type +
-                ", af=" + (activationFunction != null ? activationFunction.getClass().getSimpleName() : "NA") +
-                '}';
+        return "(" +
+                id +
+                ", " + type +
+                ", " + (activationFunction != null ? activationFunction.getClass().getSimpleName() : "NA") +
+                ')';
     }
 
     public int getId() {
         return id;
+    }
+
+    @Override
+    public int compareTo(NodeGene nodeGene) {
+        return Integer.compare(id, nodeGene.id);
     }
 }

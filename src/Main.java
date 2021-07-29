@@ -4,6 +4,7 @@ import encoding.LinkGene;
 import encoding.NodeGene;
 import encoding.NodeType;
 import innovation.Innovations;
+import operators.Crossover;
 import operators.Mutation;
 import util.Pair;
 
@@ -27,7 +28,7 @@ public class Main {
         Innovations innovations = new Innovations(3,2,false);
 
         List<Genome> pop = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 2; i++) {
             pop.add(new Genome(innovations, 1,1));
         }
 
@@ -44,7 +45,7 @@ public class Main {
             Mutation.addNewLink(genome, innovations);
         }*/
 
-        Genome genome = pop.get(0);
+
         /*for (int i = 0; i < 50; i++) {
             genome = Mutation.addNewLink(genome, innovations);
         }*/
@@ -53,14 +54,36 @@ public class Main {
         /*for (int i = 0; i < 10; i++) {
             genome = Mutation.addNewNode(genome, innovations);
         }*/
-        for (Genome gen : pop) {
-            System.out.println("All Possible Links (Calculated) - Before: " + gen.calculatePossibleLinks() + "\n");
-            gen = Mutation.addNewLink(Mutation.addNewNode(gen, innovations), innovations);
-            System.out.println("All Possible Links (Calculated) - After : " + gen.calculatePossibleLinks() + "\n");
+        // for (Genome gen : pop) {
+            // System.out.println("All Possible Links (Calculated) - Before: " + gen.calculatePossibleLinks() + "\n");
+            // gen = Mutation.addNewLink(Mutation.addNewNode(gen, innovations), innovations);
+            // System.out.println("All Possible Links (Calculated) - After : " + gen.calculatePossibleLinks() + "\n");
+        // }
+
+
+        Genome gen1 = pop.get(0);
+        gen1.setFitness(12);
+        Genome gen2 = pop.get(1);
+        gen2.setFitness(10);
+
+        for (int i = 0; i < 3; i++) {
+            gen1 = Mutation.addNewNode(gen1, innovations);
+            gen1 = Mutation.addNewLink(gen1, innovations);
+            // gen2 = Mutation.addNewLink(gen2, innovations);
         }
 
+        for (int i = 0; i < 1; i++) {
+            // gen1 = Mutation.addNewLink(gen1, innovations);
+            gen2 = Mutation.addNewNode(gen2, innovations);
+            gen2 = Mutation.addNewLink(gen2, innovations);
+        }
 
-        System.out.println("\n" + genome.generatePossibleLinks());
+        Crossover.crossover(innovations, gen1, gen2);
+
+
+
+
+        // System.out.println("\n" + genome.generatePossibleLinks());
         // Pair<Integer, Integer> pair = new Pair<>(5,6);
         // System.out.println(pair.equals(new Pair<>(5,4)));
 

@@ -101,4 +101,7 @@ public class Innovations {
         return random.nextInt(bound);
     }
 
+    public boolean getRandomBoolean() {
+        return random.nextBoolean();
+    }
 }

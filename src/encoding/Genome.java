@@ -31,6 +31,12 @@ public class Genome {
         id = lastId++;
     }
 
+    // Creates a genome with no connections. Meant to be used as a receptacle for crossover.
+    public Genome(Innovations innovations) {
+        initializeNodes(innovations);
+        id = lastId++;
+    }
+
     public Genome(Genome genome) { // Copy constructor
 
         // Copy primitives
@@ -70,7 +76,7 @@ public class Genome {
 
     private void initializeNodes(Innovations innovations) {
 
-        System.out.println(innovations.getInputNodeIds() + " " + innovations.getBiasNodeId() + " " + innovations.getOutputNodeIds());
+        // System.out.println(innovations.getInputNodeIds() + " " + innovations.getBiasNodeId() + " " + innovations.getOutputNodeIds());
 
         for (Integer inputNodeId : innovations.getInputNodeIds())
             inputNodeGenes.add(new NodeGene(inputNodeId, NodeType.INPUT));
@@ -107,7 +113,7 @@ public class Genome {
     }
 
     public void addNewLink(LinkGene linkGene) {
-        linkGenes.add(linkGene);
+        if (linkGene != null) linkGenes.add(linkGene);
     }
 
     public Set<Pair<Integer, Integer>> generatePossibleLinks() {
@@ -150,11 +156,27 @@ public class Genome {
         return possibleLinks;
     }
 
+    public List<Integer> getLinkGeneIds() {
+        List<Integer> linkGeneIds = new ArrayList<>();
+        for (LinkGene linkGene : linkGenes)
+            linkGeneIds.add(linkGene.getId());
+        return linkGeneIds;
+    }
+
+    public Set<Integer> getNodeGenesIds() {
+        Set<Integer> nodeGeneIds = new HashSet<>();
+        for (NodeGene nodeGene : nodeGenes)
+            nodeGeneIds.add(nodeGene.getId());
+        return nodeGeneIds;
+    }
+
     @Override
     public String toString() {
+        nodeGenes.sort(null);
+        linkGenes.sort(null);
         return "Genome " + id + ": {\n" +
-               "- nodeGenes:\n" + geneListToString(nodeGenes) +
-               "- linkGenes:\n" + geneListToString(linkGenes) +
+               "- nodeGenes (" + nodeGenes.size() + ") :\n" + geneListToString(nodeGenes) +
+               "- linkGenes (" + linkGenes.size() + ") :\n" + geneListToString(linkGenes) +
                '}';
     }
 
@@ -163,7 +185,7 @@ public class Genome {
      * @param geneList A list of genes
      * @return A string representation of the genes list
      */
-    private String geneListToString(List<?> geneList) {
+    public static String geneListToString(Collection<?> geneList) {
         if (geneList == null)
             return "";
         StringBuilder stringBuilder = new StringBuilder();
@@ -199,5 +221,13 @@ public class Genome {
         return
                 (numOutput * numOutput) + (numHidden * numHidden) + (numInput * numOutput) + numHidden * (numInput + 2 * numOutput)
                 + (includeBias ? numHidden + numOutput : 0);
+    }
+
+    public void setFitness(double fitness) {
+        this.fitness = fitness;
+    }
+
+    public double getFitness() {
+        return fitness;
     }
 }
