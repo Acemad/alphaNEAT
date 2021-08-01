@@ -3,15 +3,13 @@ import encoding.Genome;
 import encoding.LinkGene;
 import encoding.NodeGene;
 import encoding.NodeType;
+import encoding.phenotype.NeuralNetwork;
 import innovation.Innovations;
 import operators.Crossover;
 import operators.Mutation;
 import util.Pair;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Main {
 
@@ -25,7 +23,7 @@ public class Main {
         // System.out.println("Number of Possible Links: " + Genome.numberOfPossibleLinks(5, 4, 0, true));
         // System.out.println(population + "\n");
 
-        Innovations innovations = new Innovations(3,2,false);
+        Innovations innovations = new Innovations(4, 2,true);
 
         List<Genome> pop = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
@@ -79,6 +77,11 @@ public class Main {
         }
 
         Crossover.crossover(innovations, gen1, gen2);
+        NeuralNetwork neuralNetwork = new NeuralNetwork(gen2);
+        System.out.println(neuralNetwork);
+        neuralNetwork.activate(new double[]{1,2,1,2}, 5);
+        System.out.println(Arrays.toString(neuralNetwork.getOutputValue()));
+        System.out.println("Input Neurons\n" + NeuralNetwork.neuronsToString(neuralNetwork.getInputNeurons(), true));
 
 
 

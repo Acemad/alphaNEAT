@@ -43,4 +43,12 @@ public class NodeGene implements Comparable<NodeGene> {
     public int compareTo(NodeGene nodeGene) {
         return Integer.compare(id, nodeGene.id);
     }
+
+    public NodeType getType() {
+        return type;
+    }
+
+    public ActivationFunction getActivationFunction() {
+        return activationFunction;
+    }
 }

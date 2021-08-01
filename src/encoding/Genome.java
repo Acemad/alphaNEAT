@@ -18,9 +18,8 @@ public class Genome {
     private NodeGene biasNodeGene = null;
 
     int id = 0;
-    // int numInput;
-    // int numOutput;
 
+    int globalRank;
     double fitness;
     double adjustedFitness;
     int offspringToProduce;
@@ -41,6 +40,7 @@ public class Genome {
 
         // Copy primitives
         this.id = genome.id;
+        this.globalRank = genome.globalRank;
         this.fitness = genome.fitness;
         this.adjustedFitness = genome.adjustedFitness;
         this.offspringToProduce = genome.offspringToProduce;
@@ -229,5 +229,21 @@ public class Genome {
 
     public double getFitness() {
         return fitness;
+    }
+
+    public List<NodeGene> getInputNodeGenes() {
+        return inputNodeGenes;
+    }
+
+    public List<NodeGene> getHiddenNodeGenes() {
+        return hiddenNodeGenes;
+    }
+
+    public List<NodeGene> getOutputNodeGenes() {
+        return outputNodeGenes;
+    }
+
+    public NodeGene getBiasNodeGene() {
+        return biasNodeGene;
     }
 }
