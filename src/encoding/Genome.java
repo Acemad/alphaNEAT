@@ -1,51 +1,134 @@
 package encoding;
 
-import innovation.Innovations;
-import util.Pair;
+import encoding.phenotype.NeuralNetwork;
+import engine.NRandom;
+import innovation.InnovationDB;
+import util.Link;
 
 import java.util.*;
 
-public class Genome {
+/**
+ * The Genome class, implements the NEAT genome as described in Stanley's paper.
+ * @author Acemad
+ */
+public class Genome implements Comparable<Genome> {
 
-    private static int lastId = 0;
-
+    // List of all NodeGenes within the Genome
     private final List<NodeGene> nodeGenes = new ArrayList<>();
-    private final List<LinkGene> linkGenes = new ArrayList<>();
-
+    // Lists of NodeGenes by type
     private final List<NodeGene> inputNodeGenes = new ArrayList<>();
     private final List<NodeGene> outputNodeGenes = new ArrayList<>();
     private final List<NodeGene> hiddenNodeGenes = new ArrayList<>();
     private NodeGene biasNodeGene = null;
 
-    int id = 0;
+    // List of all LinkGenes withing the Genome
+    private final List<LinkGene> linkGenes = new ArrayList<>();
+    private final Set<Integer> nodeGenesIds = new HashSet<>();
 
-    int globalRank;
+    int id;
     double fitness;
     double adjustedFitness;
-    int offspringToProduce;
+    double spawnAmount; // The number of offspring this Genome should spawn
 
-    public Genome(Innovations innovations, double connectionProbability, double biasConnectionProbability) {
-        initializeNodes(innovations);
-        initializeLinks(innovations, connectionProbability, biasConnectionProbability);
-        id = lastId++;
+    /**
+     * Constructs a new Genome using the parameters given.
+     *
+     * @param innovationDB The innovations DB, contains information about the basic structure of the desired network
+     * @param connectionProbability The probability of connecting the input nodes with the outputs
+     *                              (1: connect all, 0: no connections)
+     * @param biasConnectionProbability The probability of connecting the bias node to the output nodes
+     */
+    public Genome(InnovationDB innovationDB, double connectionProbability, double biasConnectionProbability) {
+        initializeNodes(innovationDB);
+        initializeLinks(innovationDB, connectionProbability, biasConnectionProbability);
+        id = InnovationDB.getNewGenomeId();
     }
 
-    // Creates a genome with no connections. Meant to be used as a receptacle for crossover.
-    public Genome(Innovations innovations) {
-        initializeNodes(innovations);
-        id = lastId++;
+    /**
+     * Creates a Genome with no connections. Meant to be used as a receptacle for the offspring resulting from
+     * crossover.
+     * @param innovationDB The innovations DB
+     */
+    public Genome(InnovationDB innovationDB) {
+        initializeNodes(innovationDB);
+        id = InnovationDB.getNewGenomeId();
     }
 
-    public Genome(Genome genome) { // Copy constructor
+    /**
+     * Constructs an empty Genome
+     */
+    public Genome() {
+        id = InnovationDB.getNewGenomeId();
+    }
+
+    /**
+     * Using the basic structure data in the innovations DB, initialize the input, bias, and output NodeGenes.
+     * @param innovationDB The innovations DB
+     */
+    private void initializeNodes(InnovationDB innovationDB) {
+
+        // Initialize input NodeGenes
+        for (Integer inputNodeId : innovationDB.getInputNodeIds())
+            inputNodeGenes.add(new NodeGene(inputNodeId, NodeType.INPUT));
+
+        // Initialize Bias NodeGene
+        if (innovationDB.getBiasNodeId() > 0)
+            biasNodeGene = new NodeGene(innovationDB.getBiasNodeId(), NodeType.BIAS);
+
+        // Initialize output NodeGenes
+        for (Integer outputNodeId : innovationDB.getOutputNodeIds())
+            outputNodeGenes.add(new NodeGene(outputNodeId, NodeType.OUTPUT, innovationDB.getDefaultActivationType()));
+
+        // Add all nodes to the nodeGenes list
+        nodeGenes.addAll(inputNodeGenes);
+        if (biasNodeGene != null) nodeGenes.add(biasNodeGene);
+        nodeGenes.addAll(outputNodeGenes);
+
+        //+
+        for (NodeGene nodeGene : nodeGenes)
+            nodeGenesIds.add(nodeGene.getId());
+
+    }
+
+    // TODO Add an initializeLinksDisconnected method that keeps some inputs disconnected from the network,
+    //  in order to do feature selection
+    /**
+     *
+     * @param innovationDB
+     * @param connectionProbability
+     * @param biasConnectionProbability
+     */
+    private void initializeLinks(InnovationDB innovationDB, double connectionProbability, double biasConnectionProbability) {
+
+        // Link input nodes to output nodes following the given probability. Creates the corresponding LinkGenes and adds
+        // them to the linkGenes list
+        for (NodeGene inputNodeGene : inputNodeGenes)
+            for (NodeGene outputNodeGene : outputNodeGenes) {
+                if (NRandom.getRandomDouble() < connectionProbability)
+                    linkGenes.add(new LinkGene(inputNodeGene.getId(), outputNodeGene.getId(), innovationDB));
+            }
+
+        // If the bias node is included, link it to the output nodes, according to the given probability. Creates the
+        // corresponding LinkGenes and adds them to the linkGenes list.
+        if (innovationDB.getBiasNodeId() > 0)
+            for (NodeGene outputNodeGene : outputNodeGenes) {
+                if (NRandom.getRandomDouble() < biasConnectionProbability)
+                    linkGenes.add(new LinkGene(biasNodeGene.getId(), outputNodeGene.getId(), innovationDB));
+            }
+    }
+
+    /**
+     * Copy Constructor. Creates an exact copy of the given Genome
+     * @param genome The Genome to copy
+     */
+    public Genome(Genome genome) {
 
         // Copy primitives
-        this.id = genome.id;
-        this.globalRank = genome.globalRank;
         this.fitness = genome.fitness;
         this.adjustedFitness = genome.adjustedFitness;
-        this.offspringToProduce = genome.offspringToProduce;
+        this.spawnAmount = genome.spawnAmount;
 
-        // Deep copy of input nodes genes.
+        // Deep copy input nodes genes.
         for (NodeGene inputNodeGene : genome.inputNodeGenes)
             this.inputNodeGenes.add(new NodeGene(inputNodeGene));
 
@@ -72,127 +155,496 @@ public class Genome {
         // Deep copy of link genes
         for (LinkGene linkGene : genome.linkGenes)
             this.linkGenes.add(new LinkGene(linkGene));
+
+        //+
+        this.nodeGenesIds.addAll(genome.getNodeGenesIds());
+
+        // The copied Genome has a new id
+        id = InnovationDB.getNewGenomeId();
+        // this.id = genome.id;
     }
 
-    private void initializeNodes(Innovations innovations) {
+    /**
+     * Generates all possible links between nodes, including recurrent links (loops, hidden->hidden and output->hidden)
+     * The generated set does not include links already made between nodes.
+     *
+     * @return A Set of Integer Pairs representing possible links
+     */
+    public Set<Link> generatePossibleLinks() {
 
-        // System.out.println(innovations.getInputNodeIds() + " " + innovations.getBiasNodeId() + " " + innovations.getOutputNodeIds());
+        // The set of possible links. A link is represented by a pair of integers (source -> destination)
+        Set<Link> possibleLinks = new HashSet<>();
 
-        for (Integer inputNodeId : innovations.getInputNodeIds())
-            inputNodeGenes.add(new NodeGene(inputNodeId, NodeType.INPUT));
-
-        if (innovations.getBiasNodeId() > 0)
-            biasNodeGene = new NodeGene(innovations.getBiasNodeId(), NodeType.BIAS);
-
-        for (Integer outputNodeId : innovations.getOutputNodeIds())
-            outputNodeGenes.add(new NodeGene(outputNodeId, NodeType.OUTPUT));
-
-        nodeGenes.addAll(inputNodeGenes);
-        if (biasNodeGene != null) nodeGenes.add(biasNodeGene);
-        nodeGenes.addAll(outputNodeGenes);
-
-    }
-
-    private void initializeLinks(Innovations innovations, double connectionProbability, double biasConnectionProbability) {
+        // Generate all input to output links. (input x output)
         for (NodeGene inputNodeGene : inputNodeGenes)
-            for (NodeGene outputNodeGene : outputNodeGenes) {
-                if (innovations.getRandomDouble() < connectionProbability)
-                    linkGenes.add(new LinkGene(inputNodeGene.getId(), outputNodeGene.getId(), innovations));
-            }
-
-        if (innovations.getBiasNodeId() > 0)
-            for (NodeGene outputNodeGene : outputNodeGenes) {
-                if (innovations.getRandomDouble() < biasConnectionProbability)
-                    linkGenes.add(new LinkGene(biasNodeGene.getId(), outputNodeGene.getId(),  innovations));
-            }
-    }
-
-    public void addNewNode(NodeGene nodeGene) {
-        hiddenNodeGenes.add(nodeGene);
-        nodeGenes.add(nodeGene);
-    }
-
-    public void addNewLink(LinkGene linkGene) {
-        if (linkGene != null) linkGenes.add(linkGene);
-    }
-
-    public Set<Pair<Integer, Integer>> generatePossibleLinks() {
-        Set<Pair<Integer, Integer>> possibleLinks = new HashSet<>();
-
-        for (NodeGene inputNodeGene : inputNodeGenes) // input x output
             for (NodeGene outputNodeGene : outputNodeGenes)
-                possibleLinks.add(new Pair<>(inputNodeGene.getId(), outputNodeGene.getId()));
+                possibleLinks.add(new Link(inputNodeGene.getId(), outputNodeGene.getId()));
 
-        if (biasNodeGene != null) { // Bias(hidden + output)
+        // Generate all possible bias to hidden, bias to output links. (bias x (hidden + output))
+        if (biasNodeGene != null) {
             for (NodeGene outputNodeGene : outputNodeGenes)
-                possibleLinks.add(new Pair<>(biasNodeGene.getId(), outputNodeGene.getId()));
+                possibleLinks.add(new Link(biasNodeGene.getId(), outputNodeGene.getId()));
             for (NodeGene hiddenNodeGene : hiddenNodeGenes)
-                possibleLinks.add(new Pair<>(biasNodeGene.getId(), hiddenNodeGene.getId()));
+                possibleLinks.add(new Link(biasNodeGene.getId(), hiddenNodeGene.getId()));
         }
 
-        for (NodeGene outputNodeGeneA : outputNodeGenes) // Output²
+        // Generate all possible links between output nodes, including loops. (output x output)
+        for (NodeGene outputNodeGeneA : outputNodeGenes)
             for (NodeGene outputNodeGeneB : outputNodeGenes)
-                possibleLinks.add(new Pair<>(outputNodeGeneA.getId(), outputNodeGeneB.getId()));
+                possibleLinks.add(new Link(outputNodeGeneA.getId(), outputNodeGeneB.getId()));
 
-        for (NodeGene hiddenNodeGeneA : hiddenNodeGenes) // Hidden²
+        // Generate all possible links between hidden nodes, including loops, and backwards links. (hidden x hidden)
+        for (NodeGene hiddenNodeGeneA : hiddenNodeGenes)
             for (NodeGene hiddenNodeGeneB : hiddenNodeGenes)
-                possibleLinks.add(new Pair<>(hiddenNodeGeneA.getId(), hiddenNodeGeneB.getId()));
+                possibleLinks.add(new Link(hiddenNodeGeneA.getId(), hiddenNodeGeneB.getId()));
 
-        for (NodeGene inputNodeGene : inputNodeGenes) // input x hidden
+        // Generate all possible links from input nodes to hidden nodes. (input x hidden)
+        for (NodeGene inputNodeGene : inputNodeGenes)
             for (NodeGene hiddenNodeGene : hiddenNodeGenes)
-                possibleLinks.add(new Pair<>(inputNodeGene.getId(), hiddenNodeGene.getId()));
+                possibleLinks.add(new Link(inputNodeGene.getId(), hiddenNodeGene.getId()));
 
-        for (NodeGene hiddenNodeGene : hiddenNodeGenes) // 2 x output x hidden
+        // Generate all possible links from/to hidden nodes to/from output nodes.
+        // Includes backward links (2 x output x hidden)
+        for (NodeGene hiddenNodeGene : hiddenNodeGenes)
             for (NodeGene outputNodeGene : outputNodeGenes) {
-                possibleLinks.add(new Pair<>(hiddenNodeGene.getId(), outputNodeGene.getId()));
-                possibleLinks.add(new Pair<>(outputNodeGene.getId(), hiddenNodeGene.getId()));
+                possibleLinks.add(new Link(hiddenNodeGene.getId(), outputNodeGene.getId()));
+                possibleLinks.add(new Link(outputNodeGene.getId(), hiddenNodeGene.getId()));
             }
 
-        for (LinkGene linkGene : linkGenes) { // Filter existing
-            Pair<Integer, Integer> link = new Pair<>(linkGene.getSourceNodeId(), linkGene.getDestinationNodeId());
+        // Remove links already present in the linkGenes list from the list of all possible links. Keep only
+        // non-existing links.
+        for (LinkGene linkGene : linkGenes) {
+            Link link = new Link(linkGene.getSourceNodeId(), linkGene.getDestinationNodeId());
             possibleLinks.remove(link);
         }
 
         return possibleLinks;
     }
 
-    public List<Integer> getLinkGeneIds() {
-        List<Integer> linkGeneIds = new ArrayList<>();
+    /**
+     * Decides whether this Genome is compatible with a given Genome. The decision is made after computing
+     * the compatibility measure with the other Genome and comparing it with a given genome. In contrast with the
+     * original implementation, this function does distinguish between disjoint and excess genes, because of doing so
+     * is not meaningful. Instead, disjoint and excess genes are commonly named unmatched genes.
+     *
+     * @param genome The Genome to test compatibility with
+     * @param unmatchedCoeff Coefficient of unmatched genes
+     * @param weightDiffCoeff Coefficient of weigh difference in matched genes
+     * @param compatibilityThreshold The threshold after which the Genome is considered non-compatible
+     * @return The decision whether this Genome is compatible with the given Genome or not.
+     */
+    public boolean isCompatibleWith(Genome genome, double unmatchedCoeff, double weightDiffCoeff,
+                                    double activationDiffCoeff, double compatibilityThreshold) {
+
+        // Assemble all LinkGenes (for both Genomes) in a single set
+        Set<LinkGene> linkGenes = new HashSet<>(this.getLinkGenes());
+        linkGenes.addAll(genome.getLinkGenes());
+
+        // Get the size of the longest Genome
+        double maxLength = Math.max(this.getLinkGenes().size(), genome.getLinkGenes().size());
+
+        // Initialize the variables for matched genes, unmatched genes, and total weight difference.
+        int matchedLinks = 0;
+        int unmatchedLinks = 0;
+        double totalWeightDiff = 0;
+
+        int matchedNodes = 0;
+        double activationDiff = 0;
+
+        // Calculate the number of matched and unmatched genes, and the total weight difference for matched genes
+        for (LinkGene linkGene : linkGenes) {
+            if (this.getLinkGenes().contains(linkGene) && genome.getLinkGenes().contains(linkGene)) { // Matching genes
+                matchedLinks++;
+                totalWeightDiff += Math.abs(this.getLinkGenes().get(this.getLinkGenes().indexOf(linkGene)).getWeight() -
+                        genome.getLinkGenes().get(genome.getLinkGenes().indexOf(linkGene)).getWeight());
+            } else // Non-matching genes
+                unmatchedLinks++;
+        }
+
+        // Computes the difference in activation function type between matched nodes.
+        // This is an original addition.
+        if (activationDiffCoeff > 0) {
+            Set<NodeGene> nodeGenes = new HashSet<>(this.getNodeGenes());
+            nodeGenes.addAll(genome.getNodeGenes());
+            for (NodeGene nodeGene : nodeGenes) {
+                if (nodeGene.getType() == NodeType.INPUT || nodeGene.getType() == NodeType.BIAS)
+                    continue;
+                // A matched node
+                if (this.getNodeGenes().contains(nodeGene) && genome.getNodeGenes().contains(nodeGene)) {
+                    matchedNodes++;
+                    // Increment the difference when the activation function types do not match
+                    if (!(this.getNodeGenes().get(this.getNodeGenes().indexOf(nodeGene)).getActivationFunction()
+                            .equals(genome.getNodeGenes().get(genome.getNodeGenes().indexOf(nodeGene)).getActivationFunction())))
+                        activationDiff++;
+                }
+            }
+        }
+
+        // Compute the final compatibility score, and return the decision.
+        // Note: Compat score range should be: [0, C1 + 2C2] when weights are in the range [-1, 1], and with normalization
+
+        double score = unmatchedCoeff * (unmatchedLinks / maxLength) + weightDiffCoeff * (totalWeightDiff / matchedLinks);
+
+        // Add the activation difference term if enabled. Max score would become C1+2C2+C3
+        if (activationDiffCoeff > 0)
+            score += activationDiffCoeff * (activationDiff / matchedNodes);
+
+        return score < compatibilityThreshold;
+    }
+
+    /**
+     * Add a new NodeGene to the Genome. The new NodeGene represents a hidden node and is added to the list of hidden
+     * nodes.
+     * @param nodeGene The new NodeGene
+     */
+    public void addNewHiddenNode(NodeGene nodeGene) {
+        if (nodeGene != null) {
+            hiddenNodeGenes.add(nodeGene);
+            nodeGenes.add(nodeGene);
+            //++
+            nodeGenesIds.add(nodeGene.getId());
+        }
+    }
+
+    /**
+     * Adds a new node gene to the list of nodes, if it does not exist.
+     * This is to be used for filling out Genome receptacles, especially in crossover
+     *
+     * @param nodeGene The node gene to add
+     */
+    public void addMissingNode(NodeGene nodeGene) {
+        // First, check if the genome does not contain a node with the same id
+        if (!nodeGenesIds.contains(nodeGene.getId())) {
+            nodeGenes.add(nodeGene); // Add to the principal list
+            switch (nodeGene.getType()) { // Add to the correct type list
+                case INPUT -> inputNodeGenes.add(nodeGene);
+                case BIAS -> biasNodeGene = nodeGene;
+                case HIDDEN -> hiddenNodeGenes.add(nodeGene);
+                case OUTPUT -> outputNodeGenes.add(nodeGene);
+            }
+            // Add its id to the ids list
+            nodeGenesIds.add(nodeGene.getId());
+        }
+    }
+
+    /**
+     * Add a new LinkGene to the Genome. The LinkGene is added to the list of link genes
+     * @param linkGene
+     */
+    public void addNewLink(LinkGene linkGene) {
+        if (linkGene != null) linkGenes.add(linkGene);
+    }
+
+    /**
+     * Returns all the LinkGene Ids currently in use in this Genome as a Set
+     * @return A Set containing the LinkGenes Ids
+     */
+    public Set<Integer> getLinkGeneIds() {
+
+        // linkGenes.stream().map(LinkGene::getId).collect(Collectors.toSet());
+
+        Set<Integer> linkGeneIds = new HashSet<>();
         for (LinkGene linkGene : linkGenes)
             linkGeneIds.add(linkGene.getId());
         return linkGeneIds;
     }
 
+    /**
+     * Returns all the NodeGene Ids currently in use in this Genome as a Set
+     * @return A Set containing the NodeGenes Ids
+     */
     public Set<Integer> getNodeGenesIds() {
-        Set<Integer> nodeGeneIds = new HashSet<>();
+        /*Set<Integer> nodeGeneIds = new HashSet<>();
         for (NodeGene nodeGene : nodeGenes)
-            nodeGeneIds.add(nodeGene.getId());
-        return nodeGeneIds;
+            nodeGeneIds.add(nodeGene.getId());*/
+        return nodeGenesIds;
+    }
+
+    /**
+     * Retrieves all disabled LinkGenes and returns them in a List.
+     * @return A List of disabled LinkGenes in the Genome
+     */
+    public List<LinkGene> getDisabledLinkGenes() {
+        List<LinkGene> disabledLinkGenes = new ArrayList<>();
+        for (LinkGene linkGene : linkGenes)
+            if (!linkGene.isEnabled()) disabledLinkGenes.add(linkGene);
+        return disabledLinkGenes;
+    }
+
+    /**
+     * Computes the number of possible links this Genome can have.
+     * @return The number of possible links.
+     */
+    public int calculatePossibleLinks() {
+        return numberOfPossibleLinks(inputNodeGenes.size(), outputNodeGenes.size(), hiddenNodeGenes.size(),
+                biasNodeGene != null);
+    }
+
+    /**
+     * Computes the number of possible links using the formula:
+     *  O² + h² + i*O + h(i + 2*O) + b(h + O) {b=1 if includeBias, b=0 otherwise}
+     * @param numInput (i) Number of input nodes
+     * @param numOutput (O) Number of output nodes
+     * @param numHidden (h) Number of hidden nodes
+     * @param includeBias (b) Bias existence
+     * @return The number of possible links
+     */
+    public static int numberOfPossibleLinks(int numInput, int numOutput, int numHidden, boolean includeBias) {
+        return (numOutput * numOutput) + (numHidden * numHidden) + (numInput * numOutput) +
+                numHidden * (numInput + 2 * numOutput) + (includeBias ? numHidden + numOutput : 0);
+    }
+
+    /**
+     * Builds a NeuralNetwork object (Phenotype) out of this Genome
+     * @return A NeuralNetwork instance corresponding to this Genome
+     */
+    public NeuralNetwork buildNetwork() {
+        return new NeuralNetwork(this);
+    }
+
+    /**
+     * Verify the consistency of the genome by running a series of checks to determine whether the genome is correctly
+     * formed or not. First, it checks for the number of input, output, and bias nodes. Second, it checks for node/link
+     * duplication. Third, it checks for the presence of link source/destination nodes in the genome nodes. Fourth, it
+     * checks for the presence of all nodes in at least one connection.
+     *
+     * @param innovationDB The innovation database
+     */
+    public void checkGenomeConsistency(InnovationDB innovationDB) {
+
+        // Check the number of input/output nodes, and bias node:
+        if (getInputNodeGenes().size() != innovationDB.getInputNodeIds().size())
+            System.err.println("Input: Number of input nodes do not match the parameter number");
+
+        if (getOutputNodeGenes().size() != innovationDB.getOutputNodeIds().size())
+            System.err.println("Output: Number of output nodes do not match the parameter number");
+
+        if (getBiasNodeGene() != null && getBiasNodeGene().getId() != innovationDB.getBiasNodeId()
+                || getBiasNodeGene() == null && innovationDB.getBiasNodeId() != -1)
+            System.err.println("Bias: Presence of bias node not consistent with parameters");
+
+        // Check for duplicate nodes/links:
+        Set<NodeGene> nodeGeneSet = new HashSet<>(getNodeGenes());
+        if (nodeGeneSet.size() != getNodeGenes().size())
+            System.err.println("Duplication: Duplicate nodes exist");
+
+        Set<LinkGene> linkGeneSet = new HashSet<>(getLinkGenes());
+        if (linkGeneSet.size() != getLinkGenes().size())
+            System.err.println("Duplication: Duplicate links exist");
+
+        // Check the presence of all link source/destination nodes in genome nodes
+        for (LinkGene linkGene : getLinkGenes()) {
+            if (!getNodeGenesIds().contains(linkGene.getSourceNodeId())) {
+                System.err.println("Links: A source node does not exist in the Genome");
+                break;
+            }
+            if (!getNodeGenesIds().contains(linkGene.getDestinationNodeId())) {
+                System.err.println("Links: A destination node does not exist in the Genome");
+            }
+        }
+
+        // Check if all nodes are present in at least one link:
+        for (NodeGene nodeGene : getNodeGenes()) {
+
+            boolean nodeFound = false;
+
+            for (LinkGene linkGene : getLinkGenes())
+                if (linkGene.getSourceNodeId() == nodeGene.getId() ||
+                        linkGene.getDestinationNodeId() == nodeGene.getId())
+                {
+                    nodeFound = true;
+                    break;
+                }
+
+            if (!nodeFound) {
+                System.err.println("Nodes: A node is left without any connection");
+                break;
+            }
+        }
+    }
+
+    /**
+     * Removes a hidden node gene from the lists of node genes if it is present, and also removes all its related
+     * connections
+     *
+     * @param nodeGene The nodeGene to remove
+     */
+    public void removeHiddenNode(NodeGene nodeGene) {
+
+        // First, check existence
+        if (hiddenNodeGenes.contains(nodeGene)) {
+            nodeGenes.remove(nodeGene);
+            hiddenNodeGenes.remove(nodeGene);
+            nodeGenesIds.remove(nodeGene.getId());
+
+            // Remove related links
+            linkGenes.removeIf(linkGene ->
+                    linkGene.getDestinationNodeId() == nodeGene.getId() ||
+                    linkGene.getSourceNodeId() == nodeGene.getId());
+        }
+    }
+
+    /**
+     * Repair genomes with dangling nodes that could result from crossover. A node is a dangling node if it has no
+     * inbound or outbound connection. We fix these genomes by reconnecting the nodes without a source to a random
+     * input node, and nodes without a destination to a random output node. We may also remove the dangling node if
+     * the probability permits. This is an original enhancement.
+     *
+     * @param innovationDB The innovation database
+     * @param removeProbability The probability of removing the dangling node and its related links from the genome
+     */
+    public void fixDanglingNodes(InnovationDB innovationDB, double removeProbability) {
+
+        // Lists to hold dangling nodes and their types
+        List<NodeGene> danglingNodes = new ArrayList<>();
+        List<NodeGene> nonSourceNodes = new ArrayList<>(); // Nodes that are not sources to any other nodes
+        List<NodeGene> nonDestinationNodes = new ArrayList<>(); // Node that are not destinations to any other nodes
+
+        // Check each hidden node
+        for (NodeGene hiddenNode : hiddenNodeGenes) {
+
+            // Assume the nodes are neither sources nor destinations
+            boolean isSource = false;
+            boolean isDestination = false;
+
+            // Check all links
+            for (LinkGene linkGene : linkGenes) {
+
+                // The node is a source in a link
+                if (!isSource && linkGene.getSourceNodeId() == hiddenNode.getId())
+                    isSource = true;
+                // The node is a destination in a link
+                if (!isDestination && linkGene.getDestinationNodeId() == hiddenNode.getId())
+                    isDestination = true;
+
+                // The node is both a source and a destination, move on to the next node
+                if (isSource && isDestination) break;
+            }
+
+            // The node ie either a source or a destination, (or neither)
+            if (!isSource || !isDestination) {
+
+                // Add to the correct list. A hidden node without any connections will be added to both lists
+                if (!isSource) nonSourceNodes.add(hiddenNode);
+                if (!isDestination) nonDestinationNodes.add(hiddenNode);
+
+                // Update the global list
+                danglingNodes.add(hiddenNode);
+            }
+        }
+
+        // Either remove the dangling nodes, and their connections, or reconnect them.
+        if (NRandom.getRandomDouble() < removeProbability) {
+            // Remove dangling nodes
+            for (NodeGene danglingNode : danglingNodes)
+                removeHiddenNode(danglingNode);
+        } else {
+
+            // Reconnect dangling nodes with random output nodes for non-source nodes
+            for (NodeGene nonSourceNode : nonSourceNodes) { // Non-source
+                NodeGene randomOutput = outputNodeGenes.get(NRandom.getRandomInt(outputNodeGenes.size()));
+                LinkGene newLink = new LinkGene(nonSourceNode.getId(), randomOutput.getId(), innovationDB);
+                addNewLink(newLink);
+            }
+
+            // Reconnect dangling nodes with random input nodes for non-destination nodes
+            for (NodeGene nonDestinationNode : nonDestinationNodes) { // Non-destination
+                NodeGene randomInput = inputNodeGenes.get(NRandom.getRandomInt(inputNodeGenes.size()));
+                LinkGene newLink = new LinkGene(randomInput.getId(), nonDestinationNode.getId(), innovationDB);
+                addNewLink(newLink);
+            }
+        }
     }
 
     @Override
     public String toString() {
         nodeGenes.sort(null);
         linkGenes.sort(null);
-        return "Genome " + id + ": {\n" +
+        return "Genome " + id + ", Fitness: " + fitness + ", AdjustedFitness: " + adjustedFitness + " {\n" +
                "- nodeGenes (" + nodeGenes.size() + ") :\n" + geneListToString(nodeGenes) +
-               "- linkGenes (" + linkGenes.size() + ") :\n" + geneListToString(linkGenes) +
-               '}';
+               "- linkGenes (" + linkGenes.size() + ") :\n" + geneListToString(linkGenes) + '}';
     }
 
     /**
      * Convert a List of genes (links or nodes) to a suitable string representation
-     * @param geneList A list of genes
+     * @param genes A list of genes
      * @return A string representation of the genes list
      */
-    public static String geneListToString(Collection<?> geneList) {
-        if (geneList == null)
+    public static String geneListToString(Collection<?> genes) {
+        if (genes == null)
             return "";
         StringBuilder stringBuilder = new StringBuilder();
         // Iterate through the genes in the list, and place each gene in a separate line.
-        for (Object gene : geneList)
+        for (Object gene : genes)
             stringBuilder.append("\t\t").append(gene.toString()).append("\n");
         return stringBuilder.toString();
+    }
+
+    /**
+     * Generate a concise String representation of this Genome
+     * @return A concise String representation of this Genome
+     */
+    public String toConciseString() {
+        nodeGenes.sort(null);
+        linkGenes.sort(null);
+        StringBuilder builder = new StringBuilder();
+        builder.append(String.format("G%-4d (", id));
+        for (NodeGene nodeGene : nodeGenes) {
+            builder.append(nodeGene.toConciseString());
+            if (nodeGenes.indexOf(nodeGene) < nodeGenes.size() - 1) builder.append(", ");
+        }
+        builder.append(") (");
+        for (LinkGene linkGene : linkGenes) {
+            builder.append(linkGene.toConciseString());
+            if (linkGenes.indexOf(linkGene) < linkGenes.size() - 1) builder.append(", ");
+        }
+        builder.append(String.format(") -> f:% 7.2f", fitness))
+                .append(String.format(", af:% 7.2f", adjustedFitness))
+                .append(String.format(", sa:% 7.2f", spawnAmount))
+                .append(String.format("\t <- G%-3d", id));
+
+        return builder.toString();
+    }
+
+    /**
+     * Genomes are compared by their fitness value first, and in case fitness is equal, we compare the number of link
+     * Genes of each genome, where a lower number is better.
+     *
+     * TODO Contrib: perhaps find a better way to measure complexity of a network?
+     *
+     * @param genome The Genome to compare with
+     * @return Result of comparison
+     */
+    @Override
+    public int compareTo(Genome genome) {
+
+        int fitnessCompareResult = Double.compare(fitness, genome.getFitness());
+        if (fitnessCompareResult == 0) // Equal fitness
+            // Compare network complexity (number of linkGenes), lower is better
+            return - Integer.compare(linkGenes.size(), genome.getLinkGenes().size());
+            // return - Integer.compare(nodeGenes.size(), genome.getNodeGenes().size());
+        else
+            return fitnessCompareResult;
+
+        //return Double.compare(fitness, genome.getFitness());
+    }
+
+    /**
+     * Two Genomes are equal if their NodeGenes and LinkGenes are equal.
+     * @param obj The object to compare with
+     * @return true if both Genomes are equal
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Genome genome = (Genome) obj;
+        return nodeGenes.equals(genome.nodeGenes) && linkGenes.equals(genome.linkGenes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nodeGenes, linkGenes);
     }
 
     public List<NodeGene> getNodeGenes() {
@@ -201,34 +653,6 @@ public class Genome {
 
     public List<LinkGene> getLinkGenes() {
         return linkGenes;
-    }
-
-    public int calculatePossibleLinks() {
-        return numberOfPossibleLinks(inputNodeGenes.size(), outputNodeGenes.size(), hiddenNodeGenes.size(),
-                biasNodeGene != null);
-    }
-
-    /**
-     * Computes the number of possible links using the formula:
-     *  O² + h² + iO + h(i + 4) + h + O
-     * @param numInput (i)
-     * @param numOutput (O)
-     * @param numHidden (h)
-     * @param includeBias
-     * @return
-     */
-    public static int numberOfPossibleLinks(int numInput, int numOutput, int numHidden, boolean includeBias) {
-        return
-                (numOutput * numOutput) + (numHidden * numHidden) + (numInput * numOutput) + numHidden * (numInput + 2 * numOutput)
-                + (includeBias ? numHidden + numOutput : 0);
-    }
-
-    public void setFitness(double fitness) {
-        this.fitness = fitness;
-    }
-
-    public double getFitness() {
-        return fitness;
     }
 
     public List<NodeGene> getInputNodeGenes() {
@@ -246,4 +670,33 @@ public class Genome {
     public NodeGene getBiasNodeGene() {
         return biasNodeGene;
     }
+
+    public int getId() {
+        return id;
+    }
+
+    public double getFitness() {
+        return fitness;
+    }
+
+    public void setFitness(double fitness) {
+        this.fitness = fitness;
+    }
+
+    public double getAdjustedFitness() {
+        return adjustedFitness;
+    }
+
+    public void setAdjustedFitness(double adjustedFitness) {
+        this.adjustedFitness = adjustedFitness;
+    }
+
+    public double getSpawnAmount() {
+        return spawnAmount;
+    }
+
+    public void setSpawnAmount(double spawnAmount) {
+        this.spawnAmount = spawnAmount;
+    }
+
 }

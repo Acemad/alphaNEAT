@@ -3,68 +3,85 @@ package operators;
 import encoding.Genome;
 import encoding.LinkGene;
 import encoding.NodeGene;
-import encoding.NodeType;
-import innovation.Innovations;
+import engine.NEATConfig;
+import engine.NRandom;
+import innovation.InnovationDB;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+/**
+ * This class hosts the crossover operators as static methods.
+ * @author Acemad
+ */
 public class Crossover {
 
     /**
-     * Apply the crossover operator on two parents and generate an offspring genome.
+     * Apply the multipoint crossover operator on two parents and generate an offspring genome. Depending on the given
+     * parameters crossover could either average the weights of matching genes or chose one or the other randomly.
      *
-     * @param parentA
-     * @param parentB
-     * @return
+     * @param parentA The first parent
+     * @param parentB The second parent
+     * @return An offspring resulting from the crossover operation
      */
-    public static Genome crossover(Innovations innovations, Genome parentA, Genome parentB) {
+    public static Genome multipointCrossover(Genome parentA, Genome parentB, NEATConfig config) {
 
-        // 1. Create the offspring receptacle genome, which will receive the crossed-over link genes
-        // 2. Apply crossover between genomes, taking into account the more fit parent and the disabled genes
-        // 3. Add the resulting chromosome (link genes) to the receptacle genome
-        // 4. Add the missing hidden nodes
-        // 5. Return the offspring
+        // Create the offspring receptacle genome, which will receive the crossed-over link genes
+        Genome offspring = new Genome();
 
-        System.out.println("Parent A: " + parentA);
-        System.out.println("Parent B: " + parentB);
-
-        Genome offspring = new Genome(innovations); // Genome without links or hidden nodes
-
+        // Get the LinkGenes of both parents
         List<LinkGene> parentALinks = parentA.getLinkGenes();
         List<LinkGene> parentBLinks = parentB.getLinkGenes();
-        List<LinkGene> offspringLinks = new ArrayList<>();
 
+        // Assemble all LinkGenes of both parents in a single set of LinkGenes
         Set<LinkGene> linkGenes = new HashSet<>(parentALinks);
         linkGenes.addAll(parentBLinks);
 
+        // Retrieve all parent nodes in these two maps, for adding nodes to the offspring later
+        Map<Integer, NodeGene> parentANodes = new HashMap<>();
+        Map<Integer, NodeGene> parentBNodes = new HashMap<>();
+        for (NodeGene nodeGene : parentA.getNodeGenes()) parentANodes.put(nodeGene.getId(), nodeGene);
+        for (NodeGene nodeGene : parentB.getNodeGenes()) parentBNodes.put(nodeGene.getId(), nodeGene);
+
+        // Iterate through the set of LinkGenes
         for (LinkGene linkGene : linkGenes) {
 
             LinkGene selectedGene = null; // Just for initialization,
                                           // null links cannot be added to the link genes of the offspring.
 
+            // In which parent is this linkGene present?
             boolean linkInParentA = parentALinks.contains(linkGene);
             boolean linkInParentB = parentBLinks.contains(linkGene);
 
-            if (linkInParentA && linkInParentB) { // Matched genes
+            // The linkGene exists in both parents: Matched genes
+            if (linkInParentA && linkInParentB) {
 
+                // Get both parents versions of the gene
                 LinkGene geneVersionA = parentALinks.get(parentALinks.indexOf(linkGene));
                 LinkGene geneVersionB = parentBLinks.get(parentBLinks.indexOf(linkGene));
 
-                if (innovations.getRandomBoolean()) // Chose one version at random
+                // Chose one version at random, and add the missing nodes related to this gene
+                if (NRandom.getRandomBoolean()) {
                     selectedGene = new LinkGene(geneVersionA);
-                else
+                    addMissingNodes(offspring, selectedGene, parentANodes);
+                }
+                else {
                     selectedGene = new LinkGene(geneVersionB);
+                    addMissingNodes(offspring, selectedGene, parentBNodes);
+                }
+
+                // Averaging: compute the average weight of both genes if the probability permits. Otherwise, just keep
+                // the weight of the selected gene
+                if (NRandom.getRandomDouble() < config.mateAveragingProbability())
+                    selectedGene.setWeight((geneVersionA.getWeight() + geneVersionB.getWeight()) / 2);
 
                 // If in either version the gene is disabled, there's a chance that it stays disabled in the selected
                 // gene.
                 if (geneVersionA.isEnabled() != geneVersionB.isEnabled()) {
-                    if (innovations.getRandomDouble() < 0.75)
+                    if (NRandom.getRandomDouble() < config.mateKeepGeneDisabledProbability())
                         selectedGene.disable();
-                    else
+                    else {
                         selectedGene.enable();
+                    }
                 }
 
             } else if (parentA.getFitness() == parentB.getFitness()) { // Disjoint/Excess genes with equal fitness
@@ -74,34 +91,47 @@ public class Crossover {
                     linkInParentB && parentBLinks.size() < parentALinks.size()) {
                     selectedGene = new LinkGene(linkGene);
                 } // Parents have the same number of genes, randomly determine whether to take the gene or not
-                else if (parentALinks.size() == parentBLinks.size() && innovations.getRandomBoolean()) {
+                else if (parentALinks.size() == parentBLinks.size() && NRandom.getRandomBoolean())
                     selectedGene = new LinkGene(linkGene);
-                }
 
-            } else // Take the genes from the parent with the highest fitness
+            } else // Disjoint/excess genes with different fitness: Take the genes from the parent with the highest fitness
                 if (parentA.getFitness() > parentB.getFitness() && linkInParentA ||
                     parentB.getFitness() > parentA.getFitness() && linkInParentB)
                     selectedGene = new LinkGene(linkGene);
-                else // Drop the gene because it's from the weaker/longest parent
+                else // Drop the gene because it's from the weaker/longer parent
                     continue;
 
-
-            // Add missing nodes:
+            // Add the missing nodes related to the selected gene, in case of a gene found in only one of the parents
+            // (disjoint/excess)
             if (selectedGene != null) {
-                if (!offspring.getNodeGenesIds().contains(selectedGene.getSourceNodeId()))
-                    offspring.addNewNode(new NodeGene(selectedGene.getSourceNodeId(), NodeType.HIDDEN));
-                if (!offspring.getNodeGenesIds().contains(selectedGene.getDestinationNodeId()))
-                    offspring.addNewNode(new NodeGene(selectedGene.getDestinationNodeId(), NodeType.HIDDEN));
+                if ((linkInParentA && !linkInParentB))
+                    addMissingNodes(offspring, selectedGene, parentANodes);
+                else if ((linkInParentB && !linkInParentA))
+                    addMissingNodes(offspring, selectedGene, parentBNodes);
             }
 
             // Add the new link:
             offspring.addNewLink(selectedGene);
-
         }
 
-        System.out.println("Offspring: " + offspring);
-
+        // sanitizeGenome(offspring, innovationDB);//+
         return offspring;
     }
+
+    /**
+     * Given an offspring with missing nodes, a recently added gene, and the nodes in the source genome of the gene
+     * (parent), add the missing nodes to the offspring.
+     *
+     * @param offspring The offspring to repair
+     * @param newGene The newly added gene
+     * @param parentNodes Nodes of the parent genome
+     */
+    private static void addMissingNodes(Genome offspring, LinkGene newGene, Map<Integer, NodeGene> parentNodes) {
+
+        // Add the missing source/destination nodes. If either nodes already exist in the genome, nothing will be added
+        offspring.addMissingNode(new NodeGene(parentNodes.get(newGene.getSourceNodeId())));
+        offspring.addMissingNode(new NodeGene(parentNodes.get(newGene.getDestinationNodeId())));
+    }
+
 
 }

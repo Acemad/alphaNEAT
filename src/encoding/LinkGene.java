@@ -1,9 +1,14 @@
 package encoding;
 
-import innovation.Innovations;
+import engine.NRandom;
+import innovation.InnovationDB;
 
 import java.util.Objects;
 
+/**
+ * The implementation of a link gene, a gene that represents neural network links
+ * @author Acemad
+ */
 public class LinkGene implements Comparable<LinkGene> {
 
     private final int id;
@@ -13,22 +18,35 @@ public class LinkGene implements Comparable<LinkGene> {
     private boolean enabled = true;
     private final boolean isLoop;
 
-    public LinkGene(int sourceNodeId, int destinationNodeId, Innovations innovations) {
+    /**
+     * Construct a LinkGene using the ids of the source and destination nodes, and given the innovations database
+     *
+     * @param sourceNodeId ID of the source node
+     * @param destinationNodeId ID of the destination node
+     * @param innovationDB Reference to the shared innovations database
+     */
+    public LinkGene(int sourceNodeId, int destinationNodeId, InnovationDB innovationDB) {
 
-        this.id = innovations.newLink(sourceNodeId, destinationNodeId);
-        if (this.id == -1)
-            System.err.println("Illegal link created: (" + sourceNodeId + ", " + destinationNodeId + ")");
+        // The ID of the link is retrieved from the innovations DB. A new ID is generated only if this is the first
+        // time a link is created between the given source and destination nodes, otherwise the old ID is retrieved
+        this.id = innovationDB.requestLinkId(sourceNodeId, destinationNodeId);
 
+        // Set the remaining fields
         this.sourceNodeId = sourceNodeId;
         this.destinationNodeId = destinationNodeId;
-        this.weight = innovations.getRandomWeight();
+
+        // The weight is obtained from the innovations DB's centralised random object
+        this.weight = NRandom.getRandomWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax());
 
         isLoop = (sourceNodeId == destinationNodeId);
     }
 
-    // Weight constructor
 
-    public LinkGene(LinkGene linkGene) { // Copy Constructor
+    /**
+     * Copy constructor, creates an identical copy of the given LinkGene, with a different reference
+     * @param linkGene LinkGene to copy
+     */
+    public LinkGene(LinkGene linkGene) {
         this.id = linkGene.id;
         this.sourceNodeId = linkGene.sourceNodeId;
         this.destinationNodeId = linkGene.destinationNodeId;
@@ -48,24 +66,41 @@ public class LinkGene implements Comparable<LinkGene> {
                 ')';
     }
 
-    public boolean isEnabled() {
-        return enabled;
+    /**
+     * Creates a concise string representation of the LinkGene
+     * @return A concise String representation
+     */
+    public String toConciseString() {
+        return id + ":" + sourceNodeId + "->" + destinationNodeId + (enabled ? "" : "d") + (isLoop ? "l" : "") +
+                String.format("[% 2.2f]", weight);
     }
 
-    public int getId() {
-        return id;
+    /**
+     * Two LinkGenes are equal if their ids, sourceNodeIds, and destinationNodeIds are equal
+     * @param o The object to compare to
+     * @return comparison results
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LinkGene linkGene = (LinkGene) o;
+        return id == linkGene.id && sourceNodeId == linkGene.sourceNodeId && destinationNodeId == linkGene.destinationNodeId;
     }
 
-    public int getSourceNodeId() {
-        return sourceNodeId;
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, sourceNodeId, destinationNodeId);
     }
 
-    public int getDestinationNodeId() {
-        return destinationNodeId;
-    }
-
-    public double getWeight() {
-        return weight;
+    /**
+     * We compare LinkGenes using their ids. For sorting purposes
+     * @param linkGene The LinkGene to compare to
+     * @return comparison results
+     */
+    @Override
+    public int compareTo(LinkGene linkGene) {
+        return Integer.compare(id, linkGene.id);
     }
 
     public void disable() {
@@ -80,21 +115,28 @@ public class LinkGene implements Comparable<LinkGene> {
         this.weight = weight;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        LinkGene linkGene = (LinkGene) o;
-        return id == linkGene.id && sourceNodeId == linkGene.sourceNodeId && destinationNodeId == linkGene.destinationNodeId;
+    public int getId() {
+        return id;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, sourceNodeId, destinationNodeId);
+    public int getSourceNodeId() {
+        return sourceNodeId;
     }
 
-    @Override
-    public int compareTo(LinkGene linkGene) {
-        return Integer.compare(id, linkGene.id);
+    public int getDestinationNodeId() {
+        return destinationNodeId;
     }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public boolean isLoop() {
+        return isLoop;
+    }
+
+    public double getWeight() {
+        return weight;
+    }
+
 }

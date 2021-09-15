@@ -1,0 +1,49 @@
+populationSize=100
+numInput=2
+numOutput=1
+connectionProbability=1
+includeBias=true
+biasConnectionProbability=1
+defaultActivationType=SIGMOID_STEEP
+weightRangeMin=-2
+weightRangeMax=2
+
+# Speciation:
+
+unmatchedCoeff=3
+weightDiffCoeff=1
+activationDiffCoeff=1
+compatibilityThreshold=2.8
+
+# Staleness:
+
+maxSpeciesStaleness=15
+maxPopulationStaleness=20
+
+# Reproduction:
+
+parentsSurvivalThreshold=0.2
+
+elitismInSpecies=true
+mutateOnlyProbability=0.25
+mateOnlyProbability=0.2
+
+mateAveragingProbability=0.2
+mateKeepGeneDisabledProbability=0.75
+
+mutateAddNodeProbability=0.03
+mutateAddLinkProbability=0.05
+mutateWeightProbability=0.8
+mutateToggleEnableProbability=0.1
+mutateReEnableProbability=0.1
+
+mutateActivationProbability=0.3
+mutateActivationRate=0.2
+
+allowedActivations=SIGMOID_STEEP, TANH, SRELU, SRELU_SHIFTED, SOFTSIGN_STEEP
+
+weightPerturbationStrength=0.2
+
+fixDanglingNodes=true
+danglingRemoveProbability=0.5
+
