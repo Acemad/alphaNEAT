@@ -2,12 +2,19 @@ package engine;
 
 import activations.ActivationType;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Properties;
 
+/**
+ * A wrapper for the NEAT configuration parameters file
+ * @author Acemad
+ */
 public class NEATConfig {
 
+    // Parameters store
     private final Properties configs = new Properties();
 
     private int numInput;
@@ -19,6 +26,15 @@ public class NEATConfig {
     private ActivationType defaultActivationType;
     private double weightRangeMin;
     private double weightRangeMax;
+
+    private boolean linkTypeFiltering;
+    private double linksBetweenHiddenNodesRate;
+    private double hiddenLoopLinksRate;
+    private double outputLoopLinksRate;
+    private double outputToHiddenLinksRate;
+    private double outputToOutputLinksRate;
+    private double hiddenToHiddenBackwardLinksRate;
+    private double hiddenToHiddenSameLevelLinksRate;
 
     private double unmatchedCoeff;
     private double weightDiffCoeff;
@@ -71,6 +87,15 @@ public class NEATConfig {
         weightRangeMin = Double.parseDouble(configs.getProperty("weightRangeMin"));
         weightRangeMax = Double.parseDouble(configs.getProperty("weightRangeMax"));
 
+        linkTypeFiltering = Boolean.parseBoolean(configs.getProperty("linkTypeFiltering"));
+        linksBetweenHiddenNodesRate = Double.parseDouble(configs.getProperty("linksBetweenHiddenNodesRate"));
+        hiddenLoopLinksRate = Double.parseDouble(configs.getProperty("hiddenLoopLinksRate"));
+        outputLoopLinksRate = Double.parseDouble(configs.getProperty("outputLoopLinksRate"));
+        outputToHiddenLinksRate = Double.parseDouble(configs.getProperty("outputToHiddenLinksRate"));
+        outputToOutputLinksRate = Double.parseDouble(configs.getProperty("outputToOutputLinksRate"));
+        hiddenToHiddenBackwardLinksRate = Double.parseDouble(configs.getProperty("hiddenToHiddenBackwardLinksRate"));
+        hiddenToHiddenSameLevelLinksRate = Double.parseDouble(configs.getProperty("hiddenToHiddenSameLevelLinksRate"));
+
         maxSpeciesStaleness = Integer.parseInt(configs.getProperty("maxSpeciesStaleness"));
 
         maxPopulationStaleness = Integer.parseInt(configs.getProperty("maxPopulationStaleness"));
@@ -101,12 +126,12 @@ public class NEATConfig {
     private void loadConfigurations(String configFile) {
 
         // Get the root path
-        String rootPath = Objects.requireNonNull(Thread.currentThread().getContextClassLoader()
-                .getResource("")).getPath();
+        // String rootPath = Objects.requireNonNull(Thread.currentThread().getContextClassLoader()
+        //         .getResource("")).getPath();
 
         // Load the configurations file from the root folder
         try {
-            configs.load(new FileInputStream(rootPath + configFile));
+            configs.load(new FileInputStream(configFile));
         } catch (Exception exception) {
             System.err.println("Problem loading configuration file");
             exception.printStackTrace();
@@ -244,5 +269,37 @@ public class NEATConfig {
 
     public String allowedActivations() {
         return allowedActivations;
+    }
+
+    public boolean linkTypeFiltering() {
+        return linkTypeFiltering;
+    }
+
+    public double linksBetweenHiddenNodesRate() {
+        return linksBetweenHiddenNodesRate;
+    }
+
+    public double hiddenLoopLinksRate() {
+        return hiddenLoopLinksRate;
+    }
+
+    public double outputLoopLinksRate() {
+        return outputLoopLinksRate;
+    }
+
+    public double outputToHiddenLinksRate() {
+        return outputToHiddenLinksRate;
+    }
+
+    public double outputToOutputLinksRate() {
+        return outputToOutputLinksRate;
+    }
+
+    public double hiddenToHiddenBackwardLinksRate() {
+        return hiddenToHiddenBackwardLinksRate;
+    }
+
+    public double hiddenToHiddenSameLevelLinksRate() {
+        return hiddenToHiddenSameLevelLinksRate;
     }
 }

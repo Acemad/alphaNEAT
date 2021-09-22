@@ -5,6 +5,7 @@ import innovation.InnovationDB;
 import operators.Crossover;
 import operators.Mutation;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.List;
  * NEAT in order to protect innovation
  * @author Acemad
  */
-public class Species implements Comparable<Species> {
+public class Species implements Comparable<Species>, Serializable {
 
     // Species id, unique
     private final int id;
@@ -40,10 +41,10 @@ public class Species implements Comparable<Species> {
      * Creates a new Species using a given Genome, which becomes the leader of the new species
      * @param genome The first member and leader of the new species
      */
-    public Species(Genome genome) {
+    public Species(Genome genome, InnovationDB innovationDB) {
         this.members.add(genome);
         this.leader = genome;
-        this.id = InnovationDB.getNewSpeciesId();
+        this.id = innovationDB.getNewSpeciesId();
     }
 
     /**
@@ -125,7 +126,7 @@ public class Species implements Comparable<Species> {
 
         // Elitism: Add the leader of the species first, if the spawnAmount > 0
         if (spawnAmount > 0 && config.elitismInSpecies())
-            offsprings.add(new Genome(leader));
+            offsprings.add(new Genome(leader, innovationDB));
 
         // Spawn the required number of offsprings
         while (offsprings.size() < spawnAmount) {
@@ -140,7 +141,7 @@ public class Species implements Comparable<Species> {
 
                 // Select a random Genome and clone it
                 Genome randomGenome = members.get(NRandom.getRandomInt(members.size()));
-                offspring = new Genome(randomGenome);
+                offspring = new Genome(randomGenome, innovationDB);
 
                 // Mutate the newly created offspring
                 offspring = mutate(offspring, innovationDB, config);
@@ -154,14 +155,14 @@ public class Species implements Comparable<Species> {
                 Genome parentB = parents.get(1);
 
                 // Apply crossover
-                offspring = Crossover.multipointCrossover(parentA, parentB, config);
+                offspring = Crossover.multipointCrossover(parentA, parentB, config, innovationDB);
 
                 // Mutate the resulting offspring only if the probability of mating only is low enough
                 if (NRandom.getRandomDouble() > config.mateOnlyProbability())
                     offspring = mutate(offspring, innovationDB, config);
             }
 
-            offspring.checkGenomeConsistency(innovationDB);
+            // offspring.checkGenomeConsistency(innovationDB);
             if (config.fixDanglingNodes())
                 offspring.fixDanglingNodes(innovationDB, config.danglingRemoveProbability());
 
@@ -181,6 +182,7 @@ public class Species implements Comparable<Species> {
      */
     private static Genome mutate(Genome genome, InnovationDB innovationDB, NEATConfig config) {
 
+        // System.out.println("\t\t\t selected:" + genome.toConciseString());
         // Copy the reference of the input Genome
         Genome mutatedGenome = genome;
 
@@ -188,13 +190,15 @@ public class Species implements Comparable<Species> {
 
         // AddNode mutation
         if (NRandom.getRandomDouble() < config.mutateAddNodeProbability()) {
+            // System.out.println("Add Node mutation start: " + genome.toConciseString());
             mutatedGenome = Mutation.addNewNode(mutatedGenome, innovationDB);
             structuralMutation = true;
         }
 
         // AddLink mutation
         if (NRandom.getRandomDouble() < config.mutateAddLinkProbability()) {
-            mutatedGenome = Mutation.addNewLink(mutatedGenome, innovationDB);
+            // System.out.println("Add Link mutation start: " + genome.toConciseString());
+            mutatedGenome = Mutation.addNewLink(mutatedGenome, innovationDB, config);
             structuralMutation = true;
         }
 
@@ -206,15 +210,15 @@ public class Species implements Comparable<Species> {
             }
             // ToggleEnable mutation
             if (NRandom.getRandomDouble() < config.mutateToggleEnableProbability()) {
-                mutatedGenome = Mutation.mutateToggleEnable(mutatedGenome);
+                mutatedGenome = Mutation.mutateToggleEnable(mutatedGenome, innovationDB);
             }
             // ReEnable mutation
             if (NRandom.getRandomDouble() < config.mutateReEnableProbability()) {
-                mutatedGenome = Mutation.mutateReEnable(mutatedGenome);
+                mutatedGenome = Mutation.mutateReEnable(mutatedGenome, innovationDB);
             }
             // Activation mutation
             if (NRandom.getRandomDouble() < config.mutateActivationProbability()) {
-                mutatedGenome = Mutation.mutateActivationType(mutatedGenome, config.mutateActivationRate(),
+                mutatedGenome = Mutation.mutateActivationType(mutatedGenome, innovationDB, config.mutateActivationRate(),
                         config.allowedActivations());
             }
         }

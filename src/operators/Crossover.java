@@ -23,10 +23,10 @@ public class Crossover {
      * @param parentB The second parent
      * @return An offspring resulting from the crossover operation
      */
-    public static Genome multipointCrossover(Genome parentA, Genome parentB, NEATConfig config) {
+    public static Genome multipointCrossover(Genome parentA, Genome parentB, NEATConfig config, InnovationDB innovationDB) {
 
         // Create the offspring receptacle genome, which will receive the crossed-over link genes
-        Genome offspring = new Genome();
+        Genome offspring = new Genome(innovationDB);
 
         // Get the LinkGenes of both parents
         List<LinkGene> parentALinks = parentA.getLinkGenes();

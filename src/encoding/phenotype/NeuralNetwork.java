@@ -4,13 +4,14 @@ import encoding.Genome;
 import encoding.LinkGene;
 import encoding.NodeGene;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
  * The phenotype representation of a Genome. This class constructs a neural network out of the data in a given Genome.
  * @author Acemad
  */
-public class NeuralNetwork {
+public class NeuralNetwork implements Serializable {
 
     // Maps neuron id to a NeuralNode
     Map<Integer, NeuralNode> neurons = new HashMap<>();

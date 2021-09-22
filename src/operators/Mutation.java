@@ -5,6 +5,7 @@ import encoding.Genome;
 import encoding.LinkGene;
 import encoding.NodeGene;
 import encoding.NodeType;
+import engine.NEATConfig;
 import engine.NRandom;
 import innovation.InnovationDB;
 import util.Link;
@@ -24,19 +25,20 @@ public class Mutation {
      *
      * @param genome The genome to mutate
      * @param innovationDB The innovationDB keeping track of link ids
+     * @param config NEAT configuration file wrapper containing all parameter values
      * @return A mutated Genome with a new id
      */
-    public static Genome addNewLink(Genome genome, InnovationDB innovationDB) {
+    public static Genome addNewLink(Genome genome, InnovationDB innovationDB, NEATConfig config) {
 
         // 1. Obtain the list of possible connection between the nodes in the Genome
-        List<Link> possibleLinks = new ArrayList<>(genome.generatePossibleLinks());
+        List<Link> possibleLinks = new ArrayList<>(genome.generatePossibleLinks(config));
 
         // 2. In case no linking is possible, jut return the genome
         if (possibleLinks.size() == 0)
             return genome;
 
         // 3. Clone the genome
-        Genome mutatedGenome = new Genome(genome);
+        Genome mutatedGenome = new Genome(genome, innovationDB);
         // 4. Select a random link from the list of possible links
         Link selectedLink = possibleLinks.get(NRandom.getRandomInt(possibleLinks.size()));
         // 5. Generate a new LinkGene using the selected link and add it to the genome
@@ -57,22 +59,18 @@ public class Mutation {
     public static Genome addNewNode(Genome genome, InnovationDB innovationDB) {
 
         // 1. Clone the genome
-        Genome mutatedGenome = new Genome(genome);
+        Genome mutatedGenome = new Genome(genome, innovationDB);
 
         // 2. Find a valid link to interrupt.
-        List<LinkGene> links = mutatedGenome.getLinkGenes();
-
-        boolean found = false;
-        LinkGene selectedLink;
-
+            // Retrieve enabled links
+        List<LinkGene> links = mutatedGenome.getEnabledLinkGenes();
+            // Remove links coming from bias node
+        links.removeIf(linkGene -> linkGene.getSourceNodeId() == innovationDB.getBiasNodeId());
+        // No link can be interrupted, return the genome as is
+        if (links.isEmpty()) return genome;
+        // Retrieve a random link
         // TODO This should prioritize older links
-        do {
-            selectedLink = links.get(NRandom.getRandomInt(links.size()));
-            // Selected link must be enabled and not starting from a BIAS node.
-            if (selectedLink.isEnabled() && selectedLink.getSourceNodeId() != innovationDB.getBiasNodeId())
-                found = true;
-
-        } while (!found);
+        LinkGene selectedLink = links.get(NRandom.getRandomInt(links.size()));
 
         // 3. Disable the selected link
         selectedLink.disable();
@@ -108,6 +106,7 @@ public class Mutation {
      *
      * @param genome The genome to mutate
      * @param innovationDB The innovation database
+     * @param perturbationStrength The strength of weight perturbation
      * @return A mutated genome
      */
     public static Genome mutateWeights(Genome genome, InnovationDB innovationDB, double perturbationStrength) {
@@ -117,11 +116,11 @@ public class Mutation {
         double perturbationProbability;
 
         // 1. Clone the genome
-        Genome mutatedGenome = new Genome(genome);
+        Genome mutatedGenome = new Genome(genome, innovationDB);
 
         // 2. Iterate through all link genes and decide whether to perturb or replace their weights
         // TODO Heavily mutate genes in the tail of the chromosome (less time-tested)
-        for (LinkGene linkGene : mutatedGenome.getLinkGenes()) {
+        for (LinkGene linkGene : mutatedGenome.getEnabledLinkGenes()) {
 
             // A 50/50 chance to use more sever parameters. (As used in Stanley's NEAT implementation)
             if (NRandom.getRandomBoolean()) { // Severe
@@ -154,12 +153,16 @@ public class Mutation {
      * Mutate a genome by toggling the 'enabled' switch of a random link gene within the genome.
      *
      * @param genome The genome to mutate
+     * @param innovationDB The innovation database
      * @return A mutated genome
      */
-    public static Genome mutateToggleEnable(Genome genome) {
+    public static Genome mutateToggleEnable(Genome genome, InnovationDB innovationDB) {
 
         // 1. clone the genome
-        Genome mutatedGenome = new Genome(genome);
+        Genome mutatedGenome = new Genome(genome, innovationDB);
+
+        // In case no links exist, just return the genome
+        if (mutatedGenome.getLinkGenes().isEmpty()) return genome;
 
         // 2. Retrieve a random link gene
         LinkGene gene = mutatedGenome.getLinkGenes().get(NRandom.getRandomInt(mutatedGenome.getLinkGenes().size()));
@@ -188,12 +191,13 @@ public class Mutation {
      * Mutates a genome by re-enabling a random disabled link.
      *
      * @param genome The Genome to mutate
+     * @param innovationDB The innovation database
      * @return A mutated genome
      */
-    public static Genome mutateReEnable(Genome genome) {
+    public static Genome mutateReEnable(Genome genome, InnovationDB innovationDB) {
 
         // 1. clone the genome
-        Genome mutatedGenome = new Genome(genome);
+        Genome mutatedGenome = new Genome(genome, innovationDB);
 
         // 2. retrieve all the disabled links in the genome
         List<LinkGene> disabledLinkGenes = mutatedGenome.getDisabledLinkGenes();
@@ -213,12 +217,16 @@ public class Mutation {
      * Mutate a Genome by randomly changing the activation function type for a number of node genes within the genome
      *
      * @param genome The genome to mutate
+     * @param innovationDB The innovation database
      * @param mutateActivationRate The percent of node genes to mutate within the genome
+     * @param allowedActivations A comma separated String representing the activation types allowed for mutation
+     * @return A mutated Genome
      */
-    public static Genome mutateActivationType(Genome genome, double mutateActivationRate, String allowedActivations) {
+    public static Genome mutateActivationType(Genome genome, InnovationDB innovationDB, double mutateActivationRate,
+                                              String allowedActivations) {
 
         // 1. Clone the genome
-        Genome mutatedGenome = new Genome(genome);
+        Genome mutatedGenome = new Genome(genome, innovationDB);
 
         // 2. Retrieve a list of mutable node genes. Hidden + Output
         List<NodeGene> mutableNodeGenes = new ArrayList<>(mutatedGenome.getHiddenNodeGenes());
@@ -235,7 +243,7 @@ public class Mutation {
     }
 
     // TODO WIP : Deletion mutation for phased evolution
-    public static Genome deleteNode(Genome genome) {
+    /*public static Genome deleteNode(Genome genome) {
 
         Genome mutatedGenome = new Genome(genome);
 
@@ -249,7 +257,7 @@ public class Mutation {
         }
 
         return mutatedGenome;
-    }
+    }*/
 
     // TODO: Re-orient mutation, change the destination of a link from one node to another
 }

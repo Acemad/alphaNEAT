@@ -1,3 +1,5 @@
+package util;
+
 import encoding.Genome;
 import encoding.LinkGene;
 import encoding.NodeGene;
@@ -5,6 +7,11 @@ import org.graphstream.graph.implementations.SingleGraph;
 import org.graphstream.ui.layout.HierarchicalLayout;
 import org.graphstream.ui.view.Viewer;
 
+/**
+ * Utility class for the visualization of a Genome using a third party graph visualization library
+ *
+ * @author Acemad
+ */
 public class Visualizer {
 
     private static org.graphstream.graph.Graph genomeToGraphGStream(Genome genome) {
@@ -22,7 +29,7 @@ public class Visualizer {
                 graph.addEdge("E" + linkGene.getId(),
                         Long.toString(linkGene.getSourceNodeId()),
                         Long.toString(linkGene.getDestinationNodeId()), true)
-                        .setAttribute("ui.label", linkGene.getWeight());
+                        .setAttribute("ui.label", linkGene.getId());
         }
         graph.setAttribute("ui.quality");
         graph.setAttribute("ui.antialias");
@@ -35,8 +42,6 @@ public class Visualizer {
         HierarchicalLayout hierarchicalLayout = new HierarchicalLayout();
         Viewer viewer = genomeToGraphGStream(genome).display(false);
         viewer.enableAutoLayout(hierarchicalLayout);
-
-
     }
 
 }

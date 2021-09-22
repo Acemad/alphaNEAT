@@ -1,17 +1,24 @@
 package encoding;
 
 import encoding.phenotype.NeuralNetwork;
+import engine.NEATConfig;
 import engine.NRandom;
 import innovation.InnovationDB;
 import util.Link;
+import util.ObjectSaver;
+import util.Visualizer;
 
+import java.io.*;
 import java.util.*;
 
 /**
  * The Genome class, implements the NEAT genome as described in Stanley's paper.
  * @author Acemad
  */
-public class Genome implements Comparable<Genome> {
+public class Genome implements Comparable<Genome>, Serializable {
+
+    @Serial
+    private final static long serialVersionUID = 1L;
 
     // List of all NodeGenes within the Genome
     private final List<NodeGene> nodeGenes = new ArrayList<>();
@@ -41,7 +48,7 @@ public class Genome implements Comparable<Genome> {
     public Genome(InnovationDB innovationDB, double connectionProbability, double biasConnectionProbability) {
         initializeNodes(innovationDB);
         initializeLinks(innovationDB, connectionProbability, biasConnectionProbability);
-        id = InnovationDB.getNewGenomeId();
+        id = innovationDB.getNewGenomeId();
     }
 
     /**
@@ -51,14 +58,28 @@ public class Genome implements Comparable<Genome> {
      */
     public Genome(InnovationDB innovationDB) {
         initializeNodes(innovationDB);
-        id = InnovationDB.getNewGenomeId();
+        id = innovationDB.getNewGenomeId();
     }
 
     /**
-     * Constructs an empty Genome
+     * Manually create a Genome with the given hidden nodes and links. Input/output/bias nodes are derived from the
+     * innovation database, the rest must be provided.
+     *
+     * @param innovationDB The innovations database
+     * @param hiddenNodes The hidden nodes list that constitutes the genome
+     * @param links The links composing the genome
      */
-    public Genome() {
-        id = InnovationDB.getNewGenomeId();
+    public Genome(InnovationDB innovationDB, List<NodeGene> hiddenNodes,  List<Link> links) {
+        initializeNodes(innovationDB);
+
+        hiddenNodeGenes.addAll(hiddenNodes);
+        nodeGenes.addAll(hiddenNodes);
+        for (NodeGene hiddenNode : hiddenNodes) nodeGenesIds.add(hiddenNode.getId());
+
+        for (Link link : links)
+            linkGenes.add(new LinkGene(link.getSource(), link.getDestination(), innovationDB));
+
+        id = innovationDB.getNewGenomeId();
     }
 
     /**
@@ -90,13 +111,12 @@ public class Genome implements Comparable<Genome> {
 
     }
 
-    // TODO Add an initializeLinksDisconnected method that keeps some inputs disconnected from the network,
-    //  in order to do feature selection
     /**
+     * Initializes the first links of the genome according to given probabilities.
      *
-     * @param innovationDB
-     * @param connectionProbability
-     * @param biasConnectionProbability
+     * @param innovationDB The innovation database
+     * @param connectionProbability The probability of connecting input nodes to output nodes
+     * @param biasConnectionProbability The probability of connecting bias node to output nodes
      */
     private void initializeLinks(InnovationDB innovationDB, double connectionProbability, double biasConnectionProbability) {
 
@@ -120,8 +140,9 @@ public class Genome implements Comparable<Genome> {
     /**
      * Copy Constructor. Creates an exact copy of the given Genome
      * @param genome The Genome to copy
+     * @param innovationDB The innovation database, for retrieving a new id
      */
-    public Genome(Genome genome) {
+    public Genome(Genome genome, InnovationDB innovationDB) {
 
         // Copy primitives
         this.fitness = genome.fitness;
@@ -160,7 +181,7 @@ public class Genome implements Comparable<Genome> {
         this.nodeGenesIds.addAll(genome.getNodeGenesIds());
 
         // The copied Genome has a new id
-        id = InnovationDB.getNewGenomeId();
+        id = innovationDB.getNewGenomeId();
         // this.id = genome.id;
     }
 
@@ -170,7 +191,7 @@ public class Genome implements Comparable<Genome> {
      *
      * @return A Set of Integer Pairs representing possible links
      */
-    public Set<Link> generatePossibleLinks() {
+    public Set<Link> generatePossibleLinks(NEATConfig config) {
 
         // The set of possible links. A link is represented by a pair of integers (source -> destination)
         Set<Link> possibleLinks = new HashSet<>();
@@ -218,7 +239,127 @@ public class Genome implements Comparable<Genome> {
             possibleLinks.remove(link);
         }
 
+        if (config.linkTypeFiltering()) filterLinks(possibleLinks, config);
+
         return possibleLinks;
+    }
+
+    /**
+     * Given a list of links, remove of keep the specific link types depending on the predefined rates given in the
+     * configuration
+     *
+     * @param possibleLinks The links to filter
+     * @param config The configuration file containing all parameter values
+     */
+    private void filterLinks(Set<Link> possibleLinks, NEATConfig config) {
+
+        // Filter all links between hidden nodes
+        // (Keep a single hidden layer: input->hidden, hidden->output only)
+        if (NRandom.getRandomDouble() < 1 - config.linksBetweenHiddenNodesRate())
+            possibleLinks.removeIf(link ->
+                    getNodeGeneById(link.getSource()).getType() == NodeType.HIDDEN &&
+                            getNodeGeneById(link.getDestination()).getType() == NodeType.HIDDEN);
+
+        // Filter hidden node loops
+        if (NRandom.getRandomDouble() < 1 - config.hiddenLoopLinksRate())
+            possibleLinks.removeIf(link -> (link.getSource() == link.getDestination() &&
+                    getNodeGeneById(link.getSource()).getType() == NodeType.HIDDEN));
+
+        // Filter output node loops
+        if (NRandom.getRandomDouble() < 1 - config.outputLoopLinksRate())
+            possibleLinks.removeIf(link -> link.getSource() == link.getDestination() &&
+                    getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT);
+
+        // Filter output to hidden
+        if (NRandom.getRandomDouble() < 1 - config.outputToHiddenLinksRate())
+            possibleLinks.removeIf(link -> getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT &&
+                    getNodeGeneById(link.getDestination()).getType() == NodeType.HIDDEN);
+
+        // Filter output to output
+        if (NRandom.getRandomDouble() < 1 - config.outputToOutputLinksRate())
+            possibleLinks.removeIf(link -> getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT &&
+                    getNodeGeneById(link.getDestination()).getType() == NodeType.OUTPUT &&
+                    link.getSource() != link.getDestination());
+
+        // Filter hidden to hidden recurrent
+        if (NRandom.getRandomDouble() < 1 - config.hiddenToHiddenBackwardLinksRate())
+            possibleLinks.removeIf(link -> {
+                NodeGene source = getNodeGeneById(link.getSource());
+                NodeGene destination = getNodeGeneById(link.getDestination());
+
+                return ((source.getType() == NodeType.HIDDEN && destination.getType() == NodeType.HIDDEN) &&
+                        distanceToOutput(source) < distanceToOutput(destination));
+            });
+
+        // Filter hidden to hidden, same distance from output (same level)
+        if (NRandom.getRandomDouble() < 1 - config.hiddenToHiddenSameLevelLinksRate())
+            possibleLinks.removeIf(link -> {
+                NodeGene source = getNodeGeneById(link.getSource());
+                NodeGene destination = getNodeGeneById(link.getDestination());
+
+                return ((source.getType() == NodeType.HIDDEN && destination.getType() == NodeType.HIDDEN) &&
+                        distanceToOutput(source) == distanceToOutput(destination) &&
+                        link.getSource() != link.getDestination());
+            });
+    }
+
+    /**
+     * Calculates the distance of a given node to the closest output node using BFS. This is used to determine whether
+     * a link between two hidden nodes is backward or not. If the distance to output of node A is lower than that of
+     * node B, the link A->B is a backward link. We assume that two links of different distance from output are in
+     * different layers.
+     *
+     * The distance represents the number of links between the node and the closest output node
+     * If there is no path from the given node to an output node, we assume the distance is equal to one (the minimum
+     * distance possible)
+     *
+     * @param nodeGene The NodeGene to calculate the distance for
+     * @return The distance of the node gene to the closest output
+     */
+    public int distanceToOutput(NodeGene nodeGene) {
+
+        // Distance of output from output is zero, and distance of an input/bias from output is +inf
+        if (nodeGene.getType() == NodeType.OUTPUT) return 0;
+        if (nodeGene.getType() == NodeType.INPUT || nodeGene.getType() == NodeType.BIAS)
+            return Integer.MAX_VALUE;
+
+        // We use a queue of lists of nodes to determines the distance
+        Deque<List<NodeGene>> nodeQueue = new ArrayDeque<>();
+        // Insert the next nodes list to the queue
+        List<NodeGene> initialNodes = new ArrayList<>(getNextNodesConnectedTo(nodeGene));
+        if (!initialNodes.isEmpty()) nodeQueue.addLast(initialNodes);
+        // Record visited nodes, to avoid cycles
+        Set<NodeGene> visited = new HashSet<>();
+        visited.add(nodeGene);
+        // initial distance
+        int distance = 1;
+
+        // Iterate through the queue (BFS)
+        while (!nodeQueue.isEmpty()) {
+            // Get the node list from the front of the queue
+            List<NodeGene> currentNodes = nodeQueue.removeFirst();
+            // Iterate through the nodes
+            for (NodeGene currentNode : currentNodes) {
+                // Process non-visited nodes
+                if (!visited.contains(currentNode)) {
+                    // Mark node as visited
+                    visited.add(currentNode);
+                    // An output node is found, return the distance
+                    if (currentNode.getType() == NodeType.OUTPUT)
+                        return distance;
+                    else { // No output node, add the list of next nodes to the queue
+                        List<NodeGene> nextNodes = getNextNodesConnectedTo(currentNode);
+                        if (!nextNodes.isEmpty()) nodeQueue.addLast(nextNodes);
+                    }
+                }
+            }
+            // no output node yet, increment distance
+            distance++;
+        }
+
+        // Output is unreachable
+        return 1;
+        // return Integer.MAX_VALUE - 1;
     }
 
     /**
@@ -369,6 +510,17 @@ public class Genome implements Comparable<Genome> {
         for (LinkGene linkGene : linkGenes)
             if (!linkGene.isEnabled()) disabledLinkGenes.add(linkGene);
         return disabledLinkGenes;
+    }
+
+    /**
+     * Retrieves all enabled LinkGenes and return them in a List
+     * @return A List of enabled LinkGenes in the Genome
+     */
+    public List<LinkGene> getEnabledLinkGenes() {
+        List<LinkGene> enabledLinkGenes = new ArrayList<>();
+        for (LinkGene linkGene : linkGenes)
+            if (linkGene.isEnabled()) enabledLinkGenes.add(linkGene);
+        return enabledLinkGenes;
     }
 
     /**
@@ -542,18 +694,154 @@ public class Genome implements Comparable<Genome> {
 
             // Reconnect dangling nodes with random output nodes for non-source nodes
             for (NodeGene nonSourceNode : nonSourceNodes) { // Non-source
-                NodeGene randomOutput = outputNodeGenes.get(NRandom.getRandomInt(outputNodeGenes.size()));
-                LinkGene newLink = new LinkGene(nonSourceNode.getId(), randomOutput.getId(), innovationDB);
-                addNewLink(newLink);
+                // First check if there is a disabled link going from this node to an output node, if there is, enable it
+                boolean disabledLinkExists = false;
+                for (LinkGene disabledLinkGene : getDisabledLinkGenes())
+                    if (disabledLinkGene.getSourceNodeId() == nonSourceNode.getId() &&
+                            getNodeGeneById(disabledLinkGene.getDestinationNodeId()).getType() == NodeType.OUTPUT) {
+                        disabledLinkGene.enable();
+                        disabledLinkExists = true;
+                    }
+
+                // if not, create a link to a random output node
+                if (!disabledLinkExists) {
+                    NodeGene randomOutput = outputNodeGenes.get(NRandom.getRandomInt(outputNodeGenes.size()));
+                    LinkGene newLink = new LinkGene(nonSourceNode.getId(), randomOutput.getId(), innovationDB);
+                    addNewLink(newLink);
+                }
             }
 
             // Reconnect dangling nodes with random input nodes for non-destination nodes
             for (NodeGene nonDestinationNode : nonDestinationNodes) { // Non-destination
-                NodeGene randomInput = inputNodeGenes.get(NRandom.getRandomInt(inputNodeGenes.size()));
-                LinkGene newLink = new LinkGene(randomInput.getId(), nonDestinationNode.getId(), innovationDB);
-                addNewLink(newLink);
+                // First check if there is a disabled link going from an input node to this node, if there is, enable it
+                boolean disabledLinkExists = false;
+                for (LinkGene disabledLinkGene : getDisabledLinkGenes())
+                    if (disabledLinkGene.getDestinationNodeId() == nonDestinationNode.getId() &&
+                            getNodeGeneById(disabledLinkGene.getSourceNodeId()).getType() == NodeType.INPUT) {
+                        disabledLinkGene.enable();
+                        disabledLinkExists = true;
+                    }
+
+                // if not, create a link to a random output node
+                if (!disabledLinkExists) {
+                    NodeGene randomInput = inputNodeGenes.get(NRandom.getRandomInt(inputNodeGenes.size()));
+                    LinkGene newLink = new LinkGene(randomInput.getId(), nonDestinationNode.getId(), innovationDB);
+                    addNewLink(newLink);
+                }
             }
         }
+    }
+
+    public void updateNodeLevelsFrom(NodeGene nodeGene) {
+
+        Deque<List<NodeGene>> nodeQueue = new ArrayDeque<>();
+        nodeQueue.addLast(inputNodeGenes);
+
+        Set<NodeGene> visited = new HashSet<>();
+
+        int level = 0;
+
+        while (!nodeQueue.isEmpty()) {
+
+            List<NodeGene> currentNodes = nodeQueue.removeFirst();
+            List<NodeGene> nextNodes = new ArrayList<>();
+            boolean oneVisited = false;
+
+            for (NodeGene currentNode : currentNodes) {
+
+                if (!visited.contains(currentNode)) {
+                    oneVisited = true;
+                    visited.add(currentNode);
+                    currentNode.setLevel(level);
+                    // todo do not add empty lists
+                    nextNodes.addAll(getNextNodesConnectedTo(currentNode));
+                }
+            }
+
+            nodeQueue.addLast(nextNodes);
+
+            if (oneVisited) level++;
+        }
+
+    }
+
+    /**
+     *
+     * @param filePath
+     */
+    public void saveToFile(String filePath) {
+        ObjectSaver.saveObjectToFile(this, filePath);
+    }
+
+    /**
+     *
+     * @param filePath
+     * @return
+     */
+    public static Genome readFromFile(String filePath) {
+
+        Genome genome = null;
+        try {
+            FileInputStream fileInputStream = new FileInputStream(filePath);
+            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+            genome = (Genome) objectInputStream.readObject();
+            objectInputStream.close();
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
+        return genome;
+    }
+
+    /**
+     * Return the node gene represented by the given node id
+     * @param nodeId The id of the node to retrieve
+     * @return A NodeGene of the same id
+     */
+    public NodeGene getNodeGeneById(int nodeId) {
+        if (nodeGenesIds.contains(nodeId)) {
+            for (NodeGene nodeGene : nodeGenes)
+                if (nodeGene.getId() == nodeId)
+                    return nodeGene;
+        }
+        return null;
+    }
+
+    /**
+     * Returns a list of node genes directly connected to the given gene, as destinations. Ignore loops and disabled
+     * links
+     *
+     * @param nodeGene The concerned node gene
+     * @return A list of node genes that represent link destinations to the given node
+     */
+    private List<NodeGene> getNextNodesConnectedTo(NodeGene nodeGene) {
+
+        List<NodeGene> nextNodes = new ArrayList<>();
+
+        for (LinkGene linkGene : linkGenes) {
+            if (linkGene.isEnabled() && !linkGene.isLoop() && linkGene.getSourceNodeId() == nodeGene.getId())
+                nextNodes.add(getNodeGeneById(linkGene.getDestinationNodeId()));
+        }
+
+        return nextNodes;
+    }
+
+    /**
+     * Returns a list of node genes directly connected to the given gene, as sources. Ignore loops and disabled
+     * links
+     *
+     * @param nodeGene The concerned node gene
+     * @return A list of node genes that represent link sources to the given node
+     */
+    public List<NodeGene> getPreviousNodesConnectedTo(NodeGene nodeGene) {
+
+        List<NodeGene> previousNodes = new ArrayList<>();
+
+        for (LinkGene linkGene : linkGenes) {
+            if (linkGene.isEnabled() && !linkGene.isLoop() && linkGene.getDestinationNodeId() == nodeGene.getId())
+                previousNodes.add(getNodeGeneById(linkGene.getSourceNodeId()));
+        }
+
+        return previousNodes;
     }
 
     @Override
@@ -622,6 +910,7 @@ public class Genome implements Comparable<Genome> {
         if (fitnessCompareResult == 0) // Equal fitness
             // Compare network complexity (number of linkGenes), lower is better
             return - Integer.compare(linkGenes.size(), genome.getLinkGenes().size());
+            // return - Integer.compare(getEnabledLinkGenes().size(), genome.getEnabledLinkGenes().size());
             // return - Integer.compare(nodeGenes.size(), genome.getNodeGenes().size());
         else
             return fitnessCompareResult;
@@ -645,6 +934,13 @@ public class Genome implements Comparable<Genome> {
     @Override
     public int hashCode() {
         return Objects.hash(nodeGenes, linkGenes);
+    }
+
+    /**
+     * Visualize the Genome using the Visualizer utility class
+     */
+    public void show() {
+        Visualizer.showGStream(this);
     }
 
     public List<NodeGene> getNodeGenes() {

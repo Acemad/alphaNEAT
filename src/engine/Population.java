@@ -3,7 +3,9 @@ package engine;
 import activations.ActivationType;
 import encoding.Genome;
 import innovation.InnovationDB;
+import util.ObjectSaver;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -12,7 +14,10 @@ import java.util.List;
  * The Population class, represents the main population of Genomes and their associated Species
  * @author Acemad
  */
-public class Population {
+public class Population implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     // The population of Genomes
     private List<Genome>  population = new ArrayList<>();
@@ -34,6 +39,10 @@ public class Population {
 
     // The best genome of the current generation
     private Genome bestGenome;
+
+    // Used to store the age of the population, in terms of how many evolution steps were performed.
+    // Useful for serialization
+    private int age = 0;
 
     /**
      * Constructs a population of Genomes and initializes the associated innovations DB, based on the given number of
@@ -83,19 +92,21 @@ public class Population {
     public void evolve(EvaluationFunction evaluationFunction, NEATConfig config) {
 
         // 1. Using the given evaluation function, evaluate the fitness of individuals in the population
-        evaluatePopulation(evaluationFunction);
+        evaluatePopulation(evaluationFunction); // System.out.println("Eval done!");
         // 2. Divide Genomes into species
-        speciate(config);
+        speciate(config); // System.out.println("Speciation done!");
         // 3. Clean species and check for stale species. Heavily penalize the fitness of stale species
-        processSpeciesStaleness(config);
+        processSpeciesStaleness(config); // System.out.println("Species staleness done!");
         // 4. Compute the adjusted fitness of Genomes
-        adjustFitness();
+        adjustFitness(); // System.out.println("Adjust fitness done!");
         // 5. Compute the amount of offspring a species should spawn
-        computeSpawnAmounts();
+        computeSpawnAmounts(); // System.out.println("Spawn compute done!");
         // 6. Check for the staleness of the population, keep only the best species if population is stale
-        processPopulationStaleness(config);
+        processPopulationStaleness(config); //System.out.println("Population staleness done!");
         // 7. Generate a new generation of offsprings through mating and mutation within the species
-        reproduce(config);
+        reproduce(config); //System.out.println("Reproduce done!");
+        // increment population age
+        age++;
     }
 
     /**
@@ -143,7 +154,7 @@ public class Population {
 
             // No species compatible is found, create a new species using this Genome as a temporary leader
             if (!compatibleSpeciesFound)
-                allSpecies.add(new Species(genome));
+                allSpecies.add(new Species(genome, innovationDB));
         }
 
         // Resets the leader of each species to the best performing genome (with the highest fitness)
@@ -314,12 +325,46 @@ public class Population {
             // Select a subset of parents for reproduction. Selection is done by choosing the percent of parents from
             // the top of the ordered list of members
             species.selectParents(config.parentsSurvivalThreshold());
+            // System.out.println("\t Parent selection done " + species.toConciseString());
+            // for (Genome member : species.getMembers()) System.out.println("\t\t " + member.toConciseString());
+
+
             // Generate the offspring and add to the new generation
             newGeneration.addAll(species.spawnOffsprings(innovationDB, config));
+            // System.out.println("\t offspring spawning selection done");
         }
 
         // The old population is replaced by the new generation
         population = newGeneration;
+    }
+
+    /**
+     * Saves the state of this population instance to a given file on disk. If the file does not exist, it will be
+     * created. This is useful for resuming the evolution with an older population.
+     * @param filePath The path to the file to save population into
+     */
+    public void saveToFile(String filePath) {
+        ObjectSaver.saveObjectToFile(this, filePath);
+    }
+
+    /**
+     * Reads (deserialize) a population instance from the given file, and returns the full Population object.
+     * Useful for loading previously saved populations.
+     * @param filePath The population file
+     * @return A Population instance deserialized from the file
+     */
+    public static Population readFromFile(String filePath) {
+
+        Population population = null;
+        try {
+            FileInputStream fileInputStream = new FileInputStream(filePath);
+            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+            population = (Population) objectInputStream.readObject();
+            objectInputStream.close();
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
+        return population;
     }
 
     @Override
@@ -400,6 +445,10 @@ public class Population {
 
     public InnovationDB getInnovations() {
         return innovationDB;
+    }
+
+    public int getAge() {
+        return age;
     }
 }
 

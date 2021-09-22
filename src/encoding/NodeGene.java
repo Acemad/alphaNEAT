@@ -3,17 +3,22 @@ package encoding;
 import activations.ActivationFunction;
 import activations.ActivationType;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Implementation of a node gene, a gene representing neural network nodes
  * @author Acemad
  */
-public class NodeGene implements Comparable<NodeGene> {
+public class NodeGene implements Comparable<NodeGene>, Serializable {
 
     private final int id;
     private final NodeType type;
+    private ActivationType activationType;
     ActivationFunction activationFunction;
+
+    // Level of the node in the network
+    private int level;
 
     /**
      * Constructs a HIDDEN or OUTPUT NodeGene with a given id, NodeType, and activation type.
@@ -27,7 +32,8 @@ public class NodeGene implements Comparable<NodeGene> {
         this.type = type;
 
         // Assign an activation function only to HIDDEN and OUTPUT node types
-        this.activationFunction = ActivationType.getActivationFunction(activationType);
+        this.activationType = activationType;
+        this.activationFunction = ActivationType.getActivationFunction(this.activationType);
     }
 
     /**
@@ -36,10 +42,7 @@ public class NodeGene implements Comparable<NodeGene> {
      * @param type Type of the new NodeGene, must be INPUT or BIAS
      */
     public NodeGene(int id, NodeType type) {
-
-        this.id = id;
-        this.type = type;
-        this.activationFunction = null;
+        this(id, type, null);
     }
 
     /**
@@ -47,15 +50,15 @@ public class NodeGene implements Comparable<NodeGene> {
      * @param nodeGene The NodeGene to copy
      */
     public NodeGene(NodeGene nodeGene) {
-
         this.id = nodeGene.id;
         this.type = nodeGene.type;
 
         // Create a new copy of the activation function instance if the nodeGene has a valid activation function
-        if (nodeGene.activationFunction != null)
+        if (nodeGene.activationType != null) {
+            this.activationType = nodeGene.activationType;
             this.activationFunction = nodeGene.activationFunction.newCopy();
-        else
-            this.activationFunction = null;
+        }
+        this.level = nodeGene.level;
     }
 
     @Override
@@ -76,6 +79,7 @@ public class NodeGene implements Comparable<NodeGene> {
             case HIDDEN -> builder.append("H").append(id).append(activationFunction.shortCode());
             case BIAS -> builder.append("B").append(id);
         }
+        // builder.append("[").append(String.format("%3d", (int)(level*100))).append("]");
         return builder.toString();
     }
 
@@ -120,6 +124,16 @@ public class NodeGene implements Comparable<NodeGene> {
     }
 
     public void setActivationFunction(ActivationType activationType) {
-        this.activationFunction = ActivationType.getActivationFunction(activationType);
+        this.activationType = activationType;
+        this.activationFunction = ActivationType.getActivationFunction(this.activationType);
     }
+
+    public void setLevel(int level) {
+        this.level = level;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
 }

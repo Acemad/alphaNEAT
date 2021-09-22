@@ -3,6 +3,7 @@ package innovation;
 import activations.ActivationType;
 import util.Link;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -12,15 +13,15 @@ import java.util.*;
  *
  * @author Acemad
  */
-public class InnovationDB {
+public class InnovationDB implements Serializable {
 
     // Node and Link counters
     private int nodeCount = 0;
     private int linkCount = 0;
 
     // Keep track of genomes and species count to assign their ids.
-    private static int genomeCount;
-    private static int speciesCount;
+    private int genomeCount;
+    private int speciesCount;
 
     // Nodes Ids, by type
     private final Set<Integer> inputNodeIds = new HashSet<>();
@@ -141,7 +142,7 @@ public class InnovationDB {
      * Generate a genome id and increase the genomes count
      * @return an integer to be used as an id for a genome
      */
-    public static int getNewGenomeId() {
+    public int getNewGenomeId() {
         return genomeCount++;
     }
 
@@ -149,7 +150,7 @@ public class InnovationDB {
      * Generate a species id and increase the species count
      * @return an integer to be used as an id for a species
      */
-    public static int getNewSpeciesId() {
+    public int getNewSpeciesId() {
         return speciesCount++;
     }
 

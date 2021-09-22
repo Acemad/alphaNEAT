@@ -1,16 +1,18 @@
 package activations;
 
+import java.io.Serializable;
+
 /**
  * Abstract class defining the activation function used in neural network nodes
  * @author Acemad
  */
-public abstract class ActivationFunction {
+public abstract class ActivationFunction implements Serializable {
 
     /**
      * Takes as an input the sum of incoming activations and apply the activation function which result in
      * the activated value
      * @param value Sum of incoming activations
-     * @return
+     * @return The result of applying the activation function to the given value
      */
     public abstract double apply(double value);
 

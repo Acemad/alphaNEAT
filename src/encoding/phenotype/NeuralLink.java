@@ -2,11 +2,13 @@ package encoding.phenotype;
 
 import encoding.LinkGene;
 
+import java.io.Serializable;
+
 /**
  * Phenotype representation of the LinkGene, with only the essential data that represents a network connection
  * @author Acemad
  */
-public class NeuralLink {
+public class NeuralLink implements Serializable {
 
     private final double weight;
     private final int sourceNodeId;

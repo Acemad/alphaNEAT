@@ -1,7 +1,10 @@
 package engine;
 
-import activations.ActivationType;
 import encoding.Genome;
+import util.ObjectSaver;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Main class of ANEAT, contains facilities for loading NEAT configurations and running NEAT experiments
@@ -25,22 +28,75 @@ public class ANEAT {
 
         config = new NEATConfig(configFile);
         population = new Population(config);
-
-        // System.out.println("population = \n" + population.toConciseString());
-        // System.out.println("configurations = \n" + config);
     }
 
     /**
-     * Using the provided fitness function, starts a NEAT evolution process for the given number of generations
+     * ANEAT Resume constructor, takes a configuration file path and a path to a saved population object to continue
+     * evolution from
+     * @param configFile The path to a NEATConfig parameter file
+     * @param populationFile The population file to continue evolution from
+     */
+    public ANEAT(String configFile, String populationFile) {
+        config = new NEATConfig(configFile);
+        population = Population.readFromFile(populationFile);
+    }
+
+    /**
+     * Using the provided fitness function, starts a NEAT evolution process for the given number of generations.
+     * This method will also save the population and the best genome to separate files on each generation, if
+     * the provided baseFileName is not null
      *
      * @param fitnessFunction The function used for evaluating the quality of solutions
      * @param generations The number of generations to take
+     * @param baseFileName Base name of the population and best genomes file to save on each generation
      */
-    public void run(EvaluationFunction fitnessFunction, int generations) {
+    public void run(EvaluationFunction fitnessFunction, int generations, String baseFileName) {
+
         for (int gen = 1; gen <= generations; gen++) {
+            // Evolve population
             population.evolve(fitnessFunction, config);
             // Prints the status of the evolution
             printStatus(gen, generations);
+            // Save the population:
+            savePopulation(baseFileName);
+            saveBestGenome(baseFileName);
+        }
+    }
+
+    /**
+     * Saves the population using the given base file name. Only saves the three last generations, deletes the rest.
+     * @param baseFileName Path to the file
+     */
+    private void savePopulation(String baseFileName) {
+
+        if (baseFileName != null) {
+            population.saveToFile(baseFileName + "Pop-" + population.getAge());
+            // Keep only the three most recent generations
+            if (population.getAge() > 3) {
+                try {
+                    Files.deleteIfExists(Path.of(baseFileName + "Pop-" + (population.getAge() - 3)));
+                } catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * Saves the best genome of the population using the given path. Only saves the three last generations.
+     * @param baseFileName Path to the file
+     */
+    private void saveBestGenome(String baseFileName) {
+        if (baseFileName != null) {
+            population.getBestGenome().saveToFile(baseFileName + "Best-" + population.getAge());
+            // Keep only the three most recent generations
+            if (population.getAge() > 3) {
+                try {
+                    Files.deleteIfExists(Path.of(baseFileName + "Best-" + (population.getAge() - 3)));
+                } catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            }
         }
     }
 
@@ -52,6 +108,7 @@ public class ANEAT {
      */
     private void printStatus(int generation, int maxGenerations) {
         String status = "Gen: " + String.format("%-4d", generation) +
+                " | Age: " + String.format("%-4d", population.getAge()) +
                 " | Top Fitness: " + population.getTopFitness() +
                 " | Species Num: " + population.getSpeciesCount() +
                 " | Population Num: " + population.getPopulationSize() +
@@ -68,4 +125,7 @@ public class ANEAT {
         return population.getBestGenome();
     }
 
+    public Population getPopulation() {
+        return population;
+    }
 }

@@ -14,7 +14,7 @@ public class Tanh extends ActivationFunction {
     @Override
     public double apply(double value) {
         // (e^x – e^-x) / (e^x + e^-x)
-        return (Math.exp(value) - Math.exp(-value)) / (Math.exp(value) + Math.exp(-value));
+        return Math.tanh(value);
     }
 
     @Override

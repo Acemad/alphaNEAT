@@ -2,6 +2,7 @@ package activations;
 
 import engine.NRandom;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,9 +10,19 @@ import java.util.List;
  * An enum representing the different types of Activation functions available for NEAT
  * @author Acemad
  */
-public enum ActivationType {
+public enum ActivationType implements Serializable {
 
-    SIGMOID_STEEP, TANH, SOFTSIGN_STEEP, RELU, LEAKY_RELU, LEAKY_RELU_SHIFTED, SRELU, SRELU_SHIFTED, SOFT_PLUS, ELU;
+    // TODO Short description
+    SIGMOID_STEEP,
+    TANH,
+    SOFTSIGN_STEEP,
+    RELU,
+    LEAKY_RELU,
+    LEAKY_RELU_SHIFTED,
+    SRELU,
+    SRELU_SHIFTED,
+    SOFT_PLUS,
+    ELU;
 
     /**
      * Returns the ActivationFunction corresponding to the passed ActivationType
@@ -22,17 +33,20 @@ public enum ActivationType {
 
         ActivationFunction activationFunction = null;
 
-        switch (activationType) {
-            case SIGMOID_STEEP -> activationFunction = new SigmoidSteep();
-            case TANH -> activationFunction = new Tanh();
-            case SOFTSIGN_STEEP -> activationFunction = new SoftSignSteep();
-            case RELU -> activationFunction = new ReLU();
-            case LEAKY_RELU -> activationFunction = new LeakyReLU();
-            case LEAKY_RELU_SHIFTED -> activationFunction = new LeakyReLUShifted();
-            case SRELU -> activationFunction = new SReLU();
-            case SRELU_SHIFTED -> activationFunction = new SReLUShifted();
-            case SOFT_PLUS -> activationFunction = new SoftPlus();
-            case ELU -> activationFunction = new ELU();
+        if (activationType != null) {
+
+            switch (activationType) {
+                case SIGMOID_STEEP -> activationFunction = new SigmoidSteep();
+                case TANH -> activationFunction = new Tanh();
+                case SOFTSIGN_STEEP -> activationFunction = new SoftSignSteep();
+                case RELU -> activationFunction = new ReLU();
+                case LEAKY_RELU -> activationFunction = new LeakyReLU();
+                case LEAKY_RELU_SHIFTED -> activationFunction = new LeakyReLUShifted();
+                case SRELU -> activationFunction = new SReLU();
+                case SRELU_SHIFTED -> activationFunction = new SReLUShifted();
+                case SOFT_PLUS -> activationFunction = new SoftPlus();
+                case ELU -> activationFunction = new ELU();
+            }
         }
 
         return activationFunction;

@@ -1,5 +1,6 @@
 package util;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -7,7 +8,7 @@ import java.util.Objects;
  *
  * @author Acemad
  */
-public class Link {
+public class Link implements Serializable {
 
     private final int source;
     private final int destination;

@@ -3,13 +3,14 @@ package encoding;
 import engine.NRandom;
 import innovation.InnovationDB;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * The implementation of a link gene, a gene that represents neural network links
  * @author Acemad
  */
-public class LinkGene implements Comparable<LinkGene> {
+public class LinkGene implements Comparable<LinkGene>, Serializable {
 
     private final int id;
     private final int sourceNodeId;

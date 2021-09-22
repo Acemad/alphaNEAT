@@ -1,14 +1,17 @@
 import activations.ActivationType;
+import encoding.NodeGene;
+import encoding.NodeType;
 import encoding.phenotype.NeuralNetwork;
 import engine.ANEAT;
 import engine.NEATConfig;
-import engine.NRandom;
 import engine.Population;
 import encoding.Genome;
 import innovation.InnovationDB;
-import operators.Crossover;
-import operators.Mutation;
+import util.Link;
+import util.Visualizer;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 
 public class Main {
@@ -98,7 +101,7 @@ public class Main {
 
         // System.out.println("NodeCount: " + innovations.getNodeCount());
 
-        // Visualizer.showGStream(mutated);
+        // util.Visualizer.showGStream(mutated);
 
         // Innovations innovations = new Innovations(3,1,true);
 
@@ -138,23 +141,68 @@ public class Main {
         // System.out.println("Path: " + Thread.currentThread().getContextClassLoader().getResource("").getPath());
 
         // Crossover Test:
-        /*InnovationDB innovations = new InnovationDB(3,2,true, ActivationType.SIGMOID, -1, 1);
+        // InnovationDB innovations = new InnovationDB(3,2,true, ActivationType.SIGMOID_STEEP, -1, 1);
+        InnovationDB innovations = new InnovationDB(2,1,true, ActivationType.SIGMOID_STEEP, -1, 1);
 
-        Genome g1 = new Genome(innovations, 1, 1);
-        g1 = Mutation.addNewNode(g1, innovations);
-        g1 = Mutation.addNewNode(g1, innovations);
-        g1.setFitness(0);
-        Mutation.mutateActivationType(g1, innovations, 0.5);
+        //
+        // Genome g1 = new Genome(innovations, 1, 1);
+        // g1 = Mutation.addNewNode(g1, innovations);
+        // g1 = Mutation.addNewNode(g1, innovations);
+        // g1.setFitness(0);
+        // Mutation.mutateActivationType(g1, 0.5, "TANH, SIGMOID_STEEP");
+        //
+        // Genome g2 = new Genome(innovations, 1, 1);
+        // g2 = Mutation.addNewNode(g2, innovations);
+        // g2 = Mutation.addNewNode(g2, innovations);
+        //
+        // System.out.println("g1: " + g1.toConciseString());
+        // System.out.println("g2: " + g2.toConciseString());
+        //
+        // Genome g3 = Crossover.multipointCrossover(g1, g2, new NEATConfig("configs"));
+        // System.out.println("\ng3: " + g3.toConciseString());
 
-        Genome g2 = new Genome(innovations, 1, 1);
-        g2 = Mutation.addNewNode(g2, innovations);
-        g2 = Mutation.addNewNode(g2, innovations);
+        List<NodeGene> hiddenNodes = new ArrayList<>();
+        for (int i = 4; i < 4 + 2; i++)
+            hiddenNodes.add(new NodeGene(i, NodeType.HIDDEN, ActivationType.SIGMOID_STEEP));
 
-        System.out.println("g1: " + g1.toConciseString());
-        System.out.println("g2: " + g2.toConciseString());
 
-        Genome g3 = Crossover.multipointCrossover(g1, g2, innovations, new NEATConfig("configs"));
-        System.out.println("\ng3: " + g3.toConciseString());*/
+        List<Link> customLinks = new ArrayList<>();
+        customLinks.add(new Link(0,5));
+        customLinks.add(new Link(1,4));
+        customLinks.add(new Link(1,3));
+        customLinks.add(new Link(2,3));
+        customLinks.add(new Link(4,3));
+        // customLinks.add(new Link(4,5));
+        customLinks.add(new Link(4,3));
+        customLinks.add(new Link(3,3));
+
+        customLinks.add(new Link(5,3));
+        // customLinks.add(new Link(6,4));
+        // customLinks.add(new Link(6,3));
+
+
+
+        // customLinks.add(new Link(7,10));
+        // customLinks.add(new Link(8,7));
+        // customLinks.add(new Link(8,4));
+        // customLinks.add(new Link(8,9));
+        // customLinks.add(new Link(9,10));
+        // customLinks.add(new Link(4,5));
+        // customLinks.add(new Link(10,5));
+
+        // Genome genome = new Genome(innovations, hiddenNodes, customLinks);
+        // genome.checkGenomeConsistency(innovations);
+        // genome.show();
+        // System.out.println("genome = " + genome);
+        // for (NodeGene nodeGene : genome.getNodeGenes())
+        //     System.out.println("Distance " + nodeGene.getId() + ": " + genome.distanceToOutput(nodeGene));
+
+        // System.out.println("Possible Links: \n" + genome.generatePossibleLinks(new NEATConfig("configs")));
+
+
+
+
+
 
         /*InnovationDB innovations = new InnovationDB(3,2,
                 true, ActivationType.SIGMOID, 2, 5);
@@ -167,12 +215,24 @@ public class Main {
 
         }*/
 
+        //Path.of()
+        String parentDir = System.getProperty("user.home") + "\\Desktop\\xor\\";
+        String configPath = parentDir + "configs";
+        String baseName = parentDir + "xor";
 
-        for (int i = 0; i < 20; i++) {
-            ANEAT aneat = new ANEAT("configs");
-            aneat.run(Main::evalXOR, 1000);
+        for (int i = 0; i < 1; i++) {
+            ANEAT aneat = new ANEAT(configPath ,baseName + "Pop-6000");
+            aneat.run(Main::evalXOR, 1000, baseName);
+            // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
             System.out.println("BestGenome:\n\t " + aneat.getBestGenome().toConciseString());
         }
+
+        Genome genome = Genome.readFromFile(baseName + "Best-7000");
+        System.out.println("genome.toConciseString() \n " + genome.toConciseString());
+
+        // Population population = Population.readFromFile("population");
+        // population.evolve(Main::evalXOR, new NEATConfig("configs"));
+        // System.out.println("Pop:\n" + population.toConciseString());
 
 
         // evolve(1);

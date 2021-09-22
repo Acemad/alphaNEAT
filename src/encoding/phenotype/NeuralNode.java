@@ -4,6 +4,7 @@ import activations.ActivationFunction;
 import encoding.NodeGene;
 import encoding.NodeType;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +12,7 @@ import java.util.List;
  * The phenotype representation of a NodeGene.
  * @author Acemad
  */
-public class NeuralNode implements Comparable<NeuralNode> {
+public class NeuralNode implements Comparable<NeuralNode>, Serializable {
 
     private final int id;
     private final NodeType type;
