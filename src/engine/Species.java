@@ -150,9 +150,8 @@ public class Species implements Comparable<Species>, Serializable {
 
                 // Select two parents randomly
                 List<Genome> parents = new ArrayList<>(members);
-                Collections.shuffle(parents, NRandom.getRandom());
-                Genome parentA = parents.get(0);
-                Genome parentB = parents.get(1);
+                Genome parentA = parents.remove(NRandom.getRandomInt(parents.size()));
+                Genome parentB = parents.remove(NRandom.getRandomInt(parents.size()));
 
                 // Apply crossover
                 offspring = Crossover.multipointCrossover(parentA, parentB, config, innovationDB);
