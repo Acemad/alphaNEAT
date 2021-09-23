@@ -220,15 +220,15 @@ public class Main {
         String configPath = parentDir + "configs";
         String baseName = parentDir + "xor";
 
-        for (int i = 0; i < 1; i++) {
-            ANEAT aneat = new ANEAT(configPath ,baseName + "Pop-6000");
-            aneat.run(Main::evalXOR, 1000, baseName);
+        for (int i = 0; i < 50; i++) {
+            ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
+            aneat.run(Main::evalXOR, 1000, null);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
             System.out.println("BestGenome:\n\t " + aneat.getBestGenome().toConciseString());
         }
 
-        Genome genome = Genome.readFromFile(baseName + "Best-7000");
-        System.out.println("genome.toConciseString() \n " + genome.toConciseString());
+        // Genome genome = Genome.readFromFile(baseName + "Best-7000");
+        // System.out.println("genome.toConciseString() \n " + genome.toConciseString());
 
         // Population population = Population.readFromFile("population");
         // population.evolve(Main::evalXOR, new NEATConfig("configs"));

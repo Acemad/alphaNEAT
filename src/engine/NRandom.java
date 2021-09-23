@@ -1,12 +1,17 @@
 package engine;
 
+import org.apache.commons.rng.UniformRandomProvider;
+import org.apache.commons.rng.simple.RandomSource;
+
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class NRandom {
 
     // The random number generator used throughout the course of evolution
-    private static final Random random = ThreadLocalRandom.current();
+    // private static final Random random = ThreadLocalRandom.current();
+    private static final UniformRandomProvider random = RandomSource.XOR_SHIFT_1024_S_PHI.create();
+
 
     /**
      * Random weight generator. Generates random doubles in the range [weightRangeMin, weightRangeMax[
@@ -26,11 +31,11 @@ public class NRandom {
      * @return A random double
      */
     public static double getRandomDouble() {
-        // return random.nextDouble();
-        double gaussian = random.nextGaussian();
+        return random.nextDouble();
+        /*double gaussian = random.nextGaussian();
         if (gaussian >= 1 || gaussian < 0)
             return random.nextDouble();
-        return gaussian;
+        return gaussian;*/
     }
 
     /**
@@ -55,7 +60,7 @@ public class NRandom {
      * @return Random generator
      */
     public static Random getRandom() {
-        return random;
+        return ThreadLocalRandom.current();
     }
 
 }
