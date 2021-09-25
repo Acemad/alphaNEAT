@@ -47,7 +47,7 @@ public class Population implements Serializable {
     private int age = 0;
 
     // Evolution statistics record keeper
-    private final EvolutionStats evolutionStats = new EvolutionStats();
+    // private final EvolutionStats evolutionStats = new EvolutionStats();
 
     /**
      * Constructs a population of Genomes and initializes the associated innovations DB, based on the given number of
@@ -94,7 +94,7 @@ public class Population implements Serializable {
      * @param evaluationFunction The fitness function for evaluating Genomes
      * @param config The NEAT configuration instance containing all parameters
      */
-    public void evolve(EvaluationFunction evaluationFunction, NEATConfig config) {
+    public void evolve(EvaluationFunction evaluationFunction, NEATConfig config, EvolutionStats evolutionStats) {
 
         // 1. Using the given evaluation function, evaluate the fitness of individuals in the population
         evaluatePopulation(evaluationFunction); // System.out.println("Eval done!");
@@ -111,7 +111,7 @@ public class Population implements Serializable {
         // 6. Check for the staleness of the population, keep only the best species if population is stale
         processPopulationStaleness(config); //System.out.println("Population staleness done!");
         // 7. Generate a new generation of offsprings through mating and mutation within the species
-        reproduce(config); //System.out.println("Reproduce done!");
+        reproduce(config, evolutionStats); //System.out.println("Reproduce done!");
         // increment population age
         age++;
     }
@@ -321,7 +321,7 @@ public class Population implements Serializable {
      *
      * @param config The configuration instance containing all parameter values
      */
-    public void reproduce(NEATConfig config) {
+    public void reproduce(NEATConfig config, EvolutionStats evolutionStats) {
 
         // The new generation of offsprings
         List<Genome> newGeneration = new ArrayList<>();
@@ -366,17 +366,7 @@ public class Population implements Serializable {
      * @return A Population instance deserialized from the file
      */
     public static Population readFromFile(String filePath) {
-
-        Population population = null;
-        try {
-            FileInputStream fileInputStream = new FileInputStream(filePath);
-            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-            population = (Population) objectInputStream.readObject();
-            objectInputStream.close();
-        } catch (Exception exception) {
-            exception.printStackTrace();
-        }
-        return population;
+        return ObjectSaver.loadFromFile(filePath, Population.class);
     }
 
     @Override
@@ -467,9 +457,9 @@ public class Population implements Serializable {
         return population;
     }
 
-    public EvolutionStats getEvolutionStats() {
-        return evolutionStats;
-    }
+    // public EvolutionStats getEvolutionStats() {
+    //     return evolutionStats;
+    // }
 
     public List<Species> getSpecies() {
         return allSpecies;

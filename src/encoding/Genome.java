@@ -470,7 +470,7 @@ public class Genome implements Comparable<Genome>, Serializable {
 
     /**
      * Add a new LinkGene to the Genome. The LinkGene is added to the list of link genes
-     * @param linkGene
+     * @param linkGene The link to add
      */
     public void addNewLink(LinkGene linkGene) {
         if (linkGene != null) linkGenes.add(linkGene);
@@ -766,30 +766,20 @@ public class Genome implements Comparable<Genome>, Serializable {
     }
 
     /**
-     *
-     * @param filePath
+     * Save the Genome to a file
+     * @param filePath Path of the file to save to
      */
     public void saveToFile(String filePath) {
         ObjectSaver.saveObjectToFile(this, filePath);
     }
 
     /**
-     *
-     * @param filePath
-     * @return
+     * Loads a Genome instance from a file
+     * @param filePath Path of the Genome file
+     * @return The Genome instance
      */
     public static Genome readFromFile(String filePath) {
-
-        Genome genome = null;
-        try {
-            FileInputStream fileInputStream = new FileInputStream(filePath);
-            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-            genome = (Genome) objectInputStream.readObject();
-            objectInputStream.close();
-        } catch (Exception exception) {
-            exception.printStackTrace();
-        }
-        return genome;
+        return ObjectSaver.loadFromFile(filePath, Genome.class);
     }
 
     /**
