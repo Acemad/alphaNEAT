@@ -19,6 +19,8 @@ public class ANEAT {
     // The principal object in which evolution happens
     private final Population population;
 
+    private final EvolutionStats evolutionStats;
+
     /**
      * ANEAT Constructor, takes a path to a NEATConfig parameter file and create the necessary instances for running
      * experiments
@@ -28,6 +30,7 @@ public class ANEAT {
 
         config = new NEATConfig(configFile);
         population = new Population(config);
+        evolutionStats = new EvolutionStats();
     }
 
     /**
@@ -39,6 +42,8 @@ public class ANEAT {
     public ANEAT(String configFile, String populationFile) {
         config = new NEATConfig(configFile);
         population = Population.readFromFile(populationFile);
+        // TODO Load from file
+        evolutionStats = new EvolutionStats();
     }
 
     /**
@@ -54,13 +59,14 @@ public class ANEAT {
 
         for (int gen = 1; gen <= generations; gen++) {
             // Evolve population
-            population.evolve(fitnessFunction, config);
+            population.evolve(fitnessFunction, config, evolutionStats);
             // Prints the status of the evolution
             printStatus(gen, generations);
             // Save the population:
             savePopulation(baseFileName);
             saveBestGenome(baseFileName);
         }
+        saveStats(baseFileName);
     }
 
     /**
@@ -101,6 +107,18 @@ public class ANEAT {
     }
 
     /**
+     * Saves the evolution stats instance to a file on the disk using the given path.
+     * @param baseFileName Basic file path to save to
+     */
+    private void saveStats(String baseFileName) {
+
+        if (baseFileName != null) {
+            evolutionStats.saveToFile(baseFileName + "Stats");
+            evolutionStats.saveAsCSV(baseFileName + "Stats.csv");
+        }
+    }
+
+    /**
      * Prints ths status of the evolution to the standard output
      *
      * @param generation The current generation
@@ -130,6 +148,6 @@ public class ANEAT {
     }
 
     public EvolutionStats getEvolutionStats() {
-        return population.getEvolutionStats();
+        return evolutionStats;
     }
 }

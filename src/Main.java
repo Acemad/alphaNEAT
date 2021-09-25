@@ -5,6 +5,7 @@ import encoding.phenotype.NeuralNetwork;
 import engine.ANEAT;
 import engine.Population;
 import encoding.Genome;
+import engine.stats.EvolutionStats;
 import innovation.InnovationDB;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import util.Link;
@@ -220,7 +221,7 @@ public class Main {
 
         for (int i = 0; i < 1; i++) {
             ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
-            aneat.run(Main::evalXOR, 1000, null);
+            aneat.run(Main::evalXOR, 1000, baseName);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
             System.out.println("BestGenome:\n\t " + aneat.getBestGenome().toConciseString());
             System.out.println("SPex\n" +
@@ -262,12 +263,15 @@ public class Main {
         }
 
 
-        // Genome genome = Genome.readFromFile(baseName + "Best-7000");
-        // System.out.println("genome.toConciseString() \n " + genome.toConciseString());
+        Population population = Population.readFromFile(baseName + "Pop-1000");
+        System.out.println(population.toConciseString());
 
-        // Population population = Population.readFromFile("population");
-        // population.evolve(Main::evalXOR, new NEATConfig("configs"));
-        // System.out.println("Pop:\n" + population.toConciseString());
+        Genome genome = Genome.readFromFile(baseName+"Best-1000");
+        System.out.println("genome.toConciseString() = \n" + genome.toConciseString());
+
+        EvolutionStats stats = EvolutionStats.readFromFile(baseName + "Stats");
+        System.out.println(Arrays.stream(stats.getBestGenomeNodesStats().getValues()).boxed().collect(Collectors.toList()));
+
 
 
         // evolve(1);
@@ -283,7 +287,7 @@ public class Main {
         System.out.println("Initial Population: \n" + population.toConciseString());
         for (int i = 0; i < 1000; i++) {
             // System.out.println("############### Generation " + i);
-            population.evolve(Main::evalXOR, null);
+            population.evolve(Main::evalXOR, null, null);
             // System.out.println("Population: \n" + population.toConciseString());
             System.out.println("Gen: " + i + " Top Fitness: " + population.getTopFitness() +
                     " Species: " + population.getSpeciesCount() + " Population: " + population.getPopulationSize());

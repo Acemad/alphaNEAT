@@ -3,8 +3,13 @@ package engine.stats;
 import encoding.Genome;
 import engine.Population;
 import engine.Species;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import util.ObjectSaver;
 
+import java.io.FileWriter;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
 
@@ -13,6 +18,9 @@ import java.util.*;
  * @author Acemad
  */
 public class EvolutionStats implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     // Population Fitness Statistics (min/max/mean... fitness observed in genomes in each generation, ...)
     private final List<DescriptiveStatistics> genomesFitnessStats = new ArrayList<>();
@@ -177,7 +185,6 @@ public class EvolutionStats implements Serializable {
         speciesCumulateCountStats.addValue(population.getInnovations().getSpeciesCount());
     }
 
-
     /**
      * Updates (merge in) the reproduction stats. These include the number of time a reproduction operator was applied
      * in the current generation, these numbers are present in the given ReproductionStats instance.
@@ -198,6 +205,46 @@ public class EvolutionStats implements Serializable {
         toggleEnableMutationsStats.addValue(reproductionStats.toggleEnableMutations().get());
         reEnableMutationsStats.addValue(reproductionStats.reEnableMutations().get());
         activationMutationsStats.addValue(reproductionStats.activationMutations().get());
+    }
+
+    /**
+     * Save this instance as a serialized object
+     * @param filePath Path of the file to save to
+     */
+    public void saveToFile(String filePath) {
+        ObjectSaver.saveObjectToFile(this, filePath);
+    }
+
+    /**
+     * Read and deserialize the object file and return it as an instance of this class.
+     * @param filePath The file to read
+     * @return An EvolutionStats instance
+     */
+    public static EvolutionStats readFromFile(String filePath) {
+        return ObjectSaver.loadFromFile(filePath, EvolutionStats.class);
+    }
+
+    /**
+     * TODO Elaborate a CSV report
+     * @param filePath
+     */
+    public void saveAsCSV(String filePath) {
+        try (CSVPrinter csvPrinter = new CSVPrinter(new FileWriter(filePath), CSVFormat.EXCEL)) {
+            csvPrinter.printRecord("gen", "max", "min", "mean", "geoMean", "median", "variance", "sd", "sum");
+            for (int i = 0; i < genomesFitnessStats.size(); i++) {
+                csvPrinter.printRecord(i+1,
+                        genomesFitnessStats.get(i).getMax(),
+                        genomesFitnessStats.get(i).getMin(),
+                        genomesFitnessStats.get(i).getMean(),
+                        genomesFitnessStats.get(i).getGeometricMean(),
+                        genomesFitnessStats.get(i).getPercentile(0.5),
+                        genomesFitnessStats.get(i).getPopulationVariance(),
+                        genomesFitnessStats.get(i).getStandardDeviation(),
+                        genomesFitnessStats.get(i).getSum());
+            }
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
     }
 
     /********************** Getters ***********************/
