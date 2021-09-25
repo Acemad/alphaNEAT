@@ -1,7 +1,7 @@
 package engine;
 
 import encoding.Genome;
-import util.ObjectSaver;
+import engine.stats.EvolutionStats;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -127,5 +127,9 @@ public class ANEAT {
 
     public Population getPopulation() {
         return population;
+    }
+
+    public EvolutionStats getEvolutionStats() {
+        return population.getEvolutionStats();
     }
 }

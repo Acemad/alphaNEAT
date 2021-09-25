@@ -2,6 +2,8 @@ package engine;
 
 import activations.ActivationType;
 import encoding.Genome;
+import engine.stats.EvolutionStats;
+import engine.stats.ReproductionStats;
 import innovation.InnovationDB;
 import util.ObjectSaver;
 
@@ -43,6 +45,9 @@ public class Population implements Serializable {
     // Used to store the age of the population, in terms of how many evolution steps were performed.
     // Useful for serialization
     private int age = 0;
+
+    // Evolution statistics record keeper
+    private final EvolutionStats evolutionStats = new EvolutionStats();
 
     /**
      * Constructs a population of Genomes and initializes the associated innovations DB, based on the given number of
@@ -93,9 +98,11 @@ public class Population implements Serializable {
 
         // 1. Using the given evaluation function, evaluate the fitness of individuals in the population
         evaluatePopulation(evaluationFunction); // System.out.println("Eval done!");
-        // 2. Divide Genomes into species
+        // 2. Divide Genomes into species, then clean up the species
         speciate(config); // System.out.println("Speciation done!");
-        // 3. Clean species and check for stale species. Heavily penalize the fitness of stale species
+        // Update evolution statistics
+        evolutionStats.updateEvolutionStats(this);
+        // 3. Check for stale species. Heavily penalize the fitness of stale species
         processSpeciesStaleness(config); // System.out.println("Species staleness done!");
         // 4. Compute the adjusted fitness of Genomes
         adjustFitness(); // System.out.println("Adjust fitness done!");
@@ -119,6 +126,7 @@ public class Population implements Serializable {
         evaluationFunction.evaluateAll(population);
         // Sort the population in descending order by their fitness
         population.sort(Collections.reverseOrder());
+        // Designate the best genome
         bestGenome = population.get(0);
     }
 
@@ -163,6 +171,10 @@ public class Population implements Serializable {
 
         // Sort species by the fitness of their respective leader, highest to lowest.
         allSpecies.sort(Collections.reverseOrder());
+
+        // Remove empty species after speciation, making sure not to remove a species whose leader is the best
+        // performing Genome in the population
+        allSpecies.removeIf(species -> species.getMembers().isEmpty() && species.getLeader() != bestGenome);
     }
 
     /**
@@ -172,10 +184,6 @@ public class Population implements Serializable {
      * @param config The configuration instance containing all parameter values
      */
     public void processSpeciesStaleness(NEATConfig config) {
-
-        // Remove empty species after speciation, making sure not to remove a species whose leader is the best
-        // performing Genome in the population
-        allSpecies.removeIf(species -> species.getMembers().isEmpty() && species.getLeader() != bestGenome);
 
         // Check the staleness value of each species and penalize the fitness of the Genomes belonging to a stale
         // species. Leading species should not get penalized, even if stale.
@@ -317,6 +325,8 @@ public class Population implements Serializable {
 
         // The new generation of offsprings
         List<Genome> newGeneration = new ArrayList<>();
+        // Keeps a record of the frequencies of the applications of reproduction operators, for this generation
+        ReproductionStats reproductionStats = new ReproductionStats();
 
         // For each species generate the required number of offsprings (spawn amount) within the members of the species
         // and add the new members to the new population
@@ -328,11 +338,13 @@ public class Population implements Serializable {
             // System.out.println("\t Parent selection done " + species.toConciseString());
             // for (Genome member : species.getMembers()) System.out.println("\t\t " + member.toConciseString());
 
-
             // Generate the offspring and add to the new generation
-            newGeneration.addAll(species.spawnOffsprings(innovationDB, config));
+            newGeneration.addAll(species.spawnOffsprings(innovationDB, config, reproductionStats));
             // System.out.println("\t offspring spawning selection done");
         }
+
+        // Update the evolution statistics with the reproduction stats of this generation
+        evolutionStats.updateReproductionStats(reproductionStats);
 
         // The old population is replaced by the new generation
         population = newGeneration;
@@ -449,6 +461,18 @@ public class Population implements Serializable {
 
     public int getAge() {
         return age;
+    }
+
+    public List<Genome> getPopulationMembers() {
+        return population;
+    }
+
+    public EvolutionStats getEvolutionStats() {
+        return evolutionStats;
+    }
+
+    public List<Species> getSpecies() {
+        return allSpecies;
     }
 }
 

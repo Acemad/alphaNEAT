@@ -1,6 +1,7 @@
 package engine;
 
 import encoding.Genome;
+import engine.stats.ReproductionStats;
 import innovation.InnovationDB;
 import operators.Crossover;
 import operators.Mutation;
@@ -40,6 +41,7 @@ public class Species implements Comparable<Species>, Serializable {
     /**
      * Creates a new Species using a given Genome, which becomes the leader of the new species
      * @param genome The first member and leader of the new species
+     * @param innovationDB Innovation database used for generating unique species id
      */
     public Species(Genome genome, InnovationDB innovationDB) {
         this.members.add(genome);
@@ -53,8 +55,6 @@ public class Species implements Comparable<Species>, Serializable {
      */
     public void addMember(Genome genome) {
         this.members.add(genome);
-        /*if (genome.getFitness() > leader.getFitness())
-            leader = genome;*/
     }
 
     /**
@@ -91,6 +91,7 @@ public class Species implements Comparable<Species>, Serializable {
 
     /**
      * Checks the staleness of the species against a given maximum staleness threshold.
+     * @param maxSpeciesStaleness The maximum number of species generations in which no improvements occur
      * @return True if the species' staleness is greater than the threshold, false otherwise
      */
     public boolean checkStaleness(int maxSpeciesStaleness) {
@@ -117,9 +118,12 @@ public class Species implements Comparable<Species>, Serializable {
      * crossover) within the members of this species
      *
      * @param innovationDB The innovations DB, required for reproduction operators
+     * @param config The configuration instance containing all parameters
+     * @param reproductionStats For keeping the statistics related to the frequencies of operators application
      * @return A list of new offspring genomes
      */
-    public List<Genome> spawnOffsprings(InnovationDB innovationDB, NEATConfig config) {
+    public List<Genome> spawnOffsprings(InnovationDB innovationDB, NEATConfig config,
+                                        ReproductionStats reproductionStats) {
 
         // The list of new offspring to generate
         List<Genome> offsprings = new ArrayList<>();
@@ -144,7 +148,10 @@ public class Species implements Comparable<Species>, Serializable {
                 offspring = new Genome(randomGenome, innovationDB);
 
                 // Mutate the newly created offspring
-                offspring = mutate(offspring, innovationDB, config);
+                offspring = mutate(offspring, innovationDB, config, reproductionStats);
+
+                /*Stats*/ reproductionStats.mutationOnlyReproductions().plusOne();
+                /*Stats*/ reproductionStats.mutations().plusOne();
 
             } else { // In this case mating is a more meaningful choice
 
@@ -156,9 +163,16 @@ public class Species implements Comparable<Species>, Serializable {
                 // Apply crossover
                 offspring = Crossover.multipointCrossover(parentA, parentB, config, innovationDB);
 
+                /*Stats*/ reproductionStats.matings().plusOne();
+
                 // Mutate the resulting offspring only if the probability of mating only is low enough
-                if (NRandom.getRandomDouble() > config.mateOnlyProbability())
-                    offspring = mutate(offspring, innovationDB, config);
+                if (NRandom.getRandomDouble() > config.mateOnlyProbability()) {
+                    offspring = mutate(offspring, innovationDB, config, reproductionStats);
+
+                    /*Stats*/ reproductionStats.mutations().plusOne();
+                    /*Stats*/ reproductionStats.matingPlusMutationReproductions().plusOne();
+                } else
+                    /*Stats*/ reproductionStats.matingOnlyReproductions().plusOne();
             }
 
             // offspring.checkGenomeConsistency(innovationDB);
@@ -167,6 +181,8 @@ public class Species implements Comparable<Species>, Serializable {
 
             // Add the new offspring to the new offsprings list
             offsprings.add(offspring);
+
+            /*Stats*/ reproductionStats.totalReproductions().plusOne();
         }
 
         return offsprings;
@@ -177,9 +193,12 @@ public class Species implements Comparable<Species>, Serializable {
      *
      * @param genome The genome to mutate
      * @param innovationDB The innovation database
+     * @param config The configuration instance containing all parameters
+     * @param reproductionStats For keeping the statistics related to the frequencies of operators application
      * @return A mutated Genome
      */
-    private static Genome mutate(Genome genome, InnovationDB innovationDB, NEATConfig config) {
+    private static Genome mutate(Genome genome, InnovationDB innovationDB, NEATConfig config,
+                                 ReproductionStats reproductionStats) {
 
         // System.out.println("\t\t\t selected:" + genome.toConciseString());
         // Copy the reference of the input Genome
@@ -192,6 +211,8 @@ public class Species implements Comparable<Species>, Serializable {
             // System.out.println("Add Node mutation start: " + genome.toConciseString());
             mutatedGenome = Mutation.addNewNode(mutatedGenome, innovationDB);
             structuralMutation = true;
+
+            /*Stats*/ reproductionStats.addNodeMutations().plusOne();
         }
 
         // AddLink mutation
@@ -199,6 +220,8 @@ public class Species implements Comparable<Species>, Serializable {
             // System.out.println("Add Link mutation start: " + genome.toConciseString());
             mutatedGenome = Mutation.addNewLink(mutatedGenome, innovationDB, config);
             structuralMutation = true;
+
+            /*Stats*/ reproductionStats.addLinkMutations().plusOne();
         }
 
         // If no structural mutation succeeded, proceed with the other mutations
@@ -206,19 +229,23 @@ public class Species implements Comparable<Species>, Serializable {
             // Weight mutation
             if (NRandom.getRandomDouble() < config.mutateWeightProbability()) {
                 mutatedGenome = Mutation.mutateWeights(mutatedGenome, innovationDB, config.weightPerturbationStrength());
+                /*Stats*/ reproductionStats.weightMutations().plusOne();
             }
             // ToggleEnable mutation
             if (NRandom.getRandomDouble() < config.mutateToggleEnableProbability()) {
                 mutatedGenome = Mutation.mutateToggleEnable(mutatedGenome, innovationDB);
+                /*Stats*/ reproductionStats.toggleEnableMutations().plusOne();
             }
             // ReEnable mutation
             if (NRandom.getRandomDouble() < config.mutateReEnableProbability()) {
                 mutatedGenome = Mutation.mutateReEnable(mutatedGenome, innovationDB);
+                /*Stats*/ reproductionStats.reEnableMutations().plusOne();
             }
             // Activation mutation
             if (NRandom.getRandomDouble() < config.mutateActivationProbability()) {
                 mutatedGenome = Mutation.mutateActivationType(mutatedGenome, innovationDB, config.mutateActivationRate(),
                         config.allowedActivations());
+                /*Stats*/ reproductionStats.activationMutations().plusOne();
             }
         }
 
@@ -313,6 +340,7 @@ public class Species implements Comparable<Species>, Serializable {
     public int getSpawnAmount() {
         return spawnAmount;
     }
+
     public double getTotalAdjustedFitness() {
         return totalAdjustedFitness;
     }
@@ -321,4 +349,7 @@ public class Species implements Comparable<Species>, Serializable {
         this.spawnAmount = spawnAmount;
     }
 
+    public int getId() {
+        return id;
+    }
 }

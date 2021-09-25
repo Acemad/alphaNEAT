@@ -181,4 +181,12 @@ public class InnovationDB implements Serializable {
     public double getWeightRangeMax() {
         return weightRangeMax;
     }
+
+    public int getLinkCount() {
+        return linkCount;
+    }
+
+    public int getSpeciesCount() {
+        return speciesCount;
+    }
 }

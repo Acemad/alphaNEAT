@@ -3,16 +3,14 @@ import encoding.NodeGene;
 import encoding.NodeType;
 import encoding.phenotype.NeuralNetwork;
 import engine.ANEAT;
-import engine.NEATConfig;
 import engine.Population;
 import encoding.Genome;
 import innovation.InnovationDB;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import util.Link;
-import util.Visualizer;
 
-import java.io.File;
-import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
 
@@ -220,12 +218,49 @@ public class Main {
         String configPath = parentDir + "configs";
         String baseName = parentDir + "xor";
 
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 1; i++) {
             ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
             aneat.run(Main::evalXOR, 1000, null);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
             System.out.println("BestGenome:\n\t " + aneat.getBestGenome().toConciseString());
+            System.out.println("SPex\n" +
+                    aneat.getEvolutionStats().getSpeciesExistenceStats().get(2));
+            System.out.println("SPfi\n" +
+                    aneat.getEvolutionStats().getSpeciesFitnessStats().get(2)
+                            .stream().map(DescriptiveStatistics::getN).collect(Collectors.toList()));
+
+
+            System.out.println("Nodes C\n" +
+                    Arrays.stream(aneat.getEvolutionStats().getNodeCumulateCountStats().getValues())
+                            .sequential().boxed().collect(Collectors.toList()));
+
+            System.out.println("Links C\n" +
+                    Arrays.stream(aneat.getEvolutionStats().getLinkCumulateCountStats().getValues())
+                            .sequential().boxed().collect(Collectors.toList()));
+
+            System.out.println("Add Node\n" +
+                    Arrays.stream(aneat.getEvolutionStats().getAddNodeMutationsStats().getValues())
+                            .sequential().boxed().collect(Collectors.toList()));
+
+            System.out.println("GenomeIds: " + aneat.getEvolutionStats().getGenomeIds().size());
+
+            System.out.println("SPc\n" +
+                    Arrays.stream(aneat.getEvolutionStats().getSpeciesCountStats().getValues())
+                            .sequential().boxed().collect(Collectors.toList()));
+
+            System.out.println("SPcumul\n" +
+                    Arrays.stream(aneat.getEvolutionStats().getSpeciesCumulateCountStats().getValues())
+                            .sequential().boxed().collect(Collectors.toList()));
+
+            System.out.println("MaxF\n" +
+                    aneat.getEvolutionStats().getGenomesLinksStats().stream().map(DescriptiveStatistics::getMean)
+                            .collect(Collectors.toList()));
+
+            /*System.out.println("MaxFO\n" +
+                    Arrays.stream(aneat.getEvolutionStats().getMeanLinksStats().getValues()).boxed()
+                            .collect(Collectors.toList()));*/
         }
+
 
         // Genome genome = Genome.readFromFile(baseName + "Best-7000");
         // System.out.println("genome.toConciseString() \n " + genome.toConciseString());
