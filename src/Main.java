@@ -216,15 +216,16 @@ public class Main {
 
         //Path.of()
         String parentDir = System.getProperty("user.home") + "\\Desktop\\xor\\";
-        String configPath = parentDir + "configs";
+        String configPath = parentDir + "configs.cfg";
         String baseName = parentDir + "xor";
 
-        for (int i = 0; i < 1; i++) {
+        DescriptiveStatistics speciesCountMean = new DescriptiveStatistics();
+        for (int i = 0; i < 20; i++) {
             ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
-            aneat.run(Main::evalXOR, 1000, baseName);
+            aneat.run(Main::evalXOR, 1000, null);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
             System.out.println("BestGenome:\n\t " + aneat.getBestGenome().toConciseString());
-            System.out.println("SPex\n" +
+            /*System.out.println("SPex\n" +
                     aneat.getEvolutionStats().getSpeciesExistenceStats().get(2));
             System.out.println("SPfi\n" +
                     aneat.getEvolutionStats().getSpeciesFitnessStats().get(2)
@@ -255,15 +256,20 @@ public class Main {
 
             System.out.println("MaxF\n" +
                     aneat.getEvolutionStats().getGenomesLinksStats().stream().map(DescriptiveStatistics::getMean)
-                            .collect(Collectors.toList()));
+                            .collect(Collectors.toList()));*/
 
             /*System.out.println("MaxFO\n" +
                     Arrays.stream(aneat.getEvolutionStats().getMeanLinksStats().getValues()).boxed()
                             .collect(Collectors.toList()));*/
+
+            System.out.println("Mean Species nb:" + aneat.getEvolutionStats().getSpeciesCountStats().getMean());
+            speciesCountMean.addValue(aneat.getEvolutionStats().getSpeciesCountStats().getMean());
         }
 
+        System.out.println("speciesCountMean = \n" + speciesCountMean);
 
-        Population population = Population.readFromFile(baseName + "Pop-1000");
+
+        /*Population population = Population.readFromFile(baseName + "Pop-1000");
         System.out.println(population.toConciseString());
 
         Genome genome = Genome.readFromFile(baseName+"Best-1000");
@@ -271,7 +277,7 @@ public class Main {
 
         EvolutionStats stats = EvolutionStats.readFromFile(baseName + "Stats");
         System.out.println(Arrays.stream(stats.getBestGenomeNodesStats().getValues()).boxed().collect(Collectors.toList()));
-
+        */
 
 
         // evolve(1);

@@ -105,10 +105,9 @@ public class NeuralNetwork implements Serializable {
 
         // For a given number of passes, activate the network by iterating through each activable neuron and calculating
         // the activation
-        for (i = 0; i < passes; i++) // TODO Rewrite to enable re-sorting after each node activation
+        for (i = 0; i < passes; i++)
             for (NeuralNode activableNeuron : activableNeurons)
                  activableNeuron.activate();
-
     }
 
     /**

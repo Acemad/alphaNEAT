@@ -139,6 +139,17 @@ public class Population implements Serializable {
      */
     public void speciate(NEATConfig config) {
 
+        // Adapt compatibility threshold: Tries to keep the number of species fixed to a given value, at all time.
+        // Aims to increase diversity
+        if (config.aimForSpeciesNumber() && age > 1) {
+            if (getSpeciesCount() < config.speciesNumberTarget())
+                config.incrementCompatibilityThresholdBy(-0.25); //0.4 looks good, 0.3 is better
+            else if (getSpeciesCount() > config.speciesNumberTarget())
+                config.incrementCompatibilityThresholdBy(0.25);
+
+            if (config.compatibilityThreshold() < 0.25) config.setCompatibilityThreshold(0.25);
+        }
+
         // Clear all members of the species from the previous generations. The leader of the species is kept in his own
         // field
         for (Species species : allSpecies)

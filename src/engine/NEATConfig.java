@@ -40,6 +40,8 @@ public class NEATConfig {
     private double weightDiffCoeff;
     private double activationDiffCoeff;
     private double compatibilityThreshold;
+    private boolean aimForSpeciesNumber;
+    private int speciesNumberTarget;
 
     private int maxSpeciesStaleness;
 
@@ -83,6 +85,10 @@ public class NEATConfig {
         weightDiffCoeff = Double.parseDouble(configs.getProperty("weightDiffCoeff"));
         activationDiffCoeff = Double.parseDouble(configs.getProperty("activationDiffCoeff"));
         compatibilityThreshold = Double.parseDouble(configs.getProperty("compatibilityThreshold"));
+        aimForSpeciesNumber = Boolean.parseBoolean(configs.getProperty("aimForSpeciesNumber"));
+        speciesNumberTarget = Integer.parseInt(configs.getProperty("speciesNumberTarget"));
+
+
         defaultActivationType = ActivationType.valueOf(configs.getProperty("defaultActivationType"));
         weightRangeMin = Double.parseDouble(configs.getProperty("weightRangeMin"));
         weightRangeMax = Double.parseDouble(configs.getProperty("weightRangeMax"));
@@ -301,5 +307,21 @@ public class NEATConfig {
 
     public double hiddenToHiddenSameLevelLinksRate() {
         return hiddenToHiddenSameLevelLinksRate;
+    }
+
+    public void incrementCompatibilityThresholdBy(double value) {
+        compatibilityThreshold += value;
+    }
+
+    public void setCompatibilityThreshold(double compatibilityThreshold) {
+        this.compatibilityThreshold = compatibilityThreshold;
+    }
+
+    public boolean aimForSpeciesNumber() {
+        return aimForSpeciesNumber;
+    }
+
+    public int speciesNumberTarget() {
+        return speciesNumberTarget;
     }
 }
