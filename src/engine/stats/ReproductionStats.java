@@ -1,5 +1,9 @@
 package engine.stats;
 
+/**
+ * This class is used to capture the reproduction statistics for a single generation
+ * @author Acemad
+ */
 public class ReproductionStats {
 
     private final Counter mutationOnlyReproductions = new Counter();

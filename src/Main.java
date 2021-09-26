@@ -263,7 +263,7 @@ public class Main {
                             .collect(Collectors.toList()));*/
 
             System.out.println("Mean Species nb:" + aneat.getEvolutionStats().getSpeciesCountStats().getMean());
-            speciesCountMean.addValue(aneat.getEvolutionStats().getSpeciesCountStats().getMean());
+            speciesCountMean.addValue(aneat.getEvolutionStats().getGenomesFitnessStats().get(999).getMax());
         }
 
         System.out.println("speciesCountMean = \n" + speciesCountMean);

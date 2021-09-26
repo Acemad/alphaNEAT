@@ -1,7 +1,8 @@
 package engine.stats;
 
 /**
- *
+ * A simple counter
+ * @author Acemad
  */
 public class Counter {
 

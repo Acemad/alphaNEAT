@@ -6,7 +6,7 @@ import org.apache.commons.rng.simple.RandomSource;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class NRandom {
+public class PRNG {
 
     // The random number generator used throughout the course of evolution
     // private static final Random random = ThreadLocalRandom.current();

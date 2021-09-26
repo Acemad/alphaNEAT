@@ -4,7 +4,7 @@ import encoding.Genome;
 import encoding.LinkGene;
 import encoding.NodeGene;
 import engine.NEATConfig;
-import engine.NRandom;
+import engine.PRNG;
 import innovation.InnovationDB;
 
 import java.util.*;
@@ -60,7 +60,7 @@ public class Crossover {
                 LinkGene geneVersionB = parentBLinks.get(parentBLinks.indexOf(linkGene));
 
                 // Chose one version at random, and add the missing nodes related to this gene
-                if (NRandom.getRandomBoolean()) {
+                if (PRNG.getRandomBoolean()) {
                     selectedGene = new LinkGene(geneVersionA);
                     addMissingNodes(offspring, selectedGene, parentANodes);
                 }
@@ -71,13 +71,13 @@ public class Crossover {
 
                 // Averaging: compute the average weight of both genes if the probability permits. Otherwise, just keep
                 // the weight of the selected gene
-                if (NRandom.getRandomDouble() < config.mateAveragingProbability())
+                if (PRNG.getRandomDouble() < config.mateAveragingProbability())
                     selectedGene.setWeight((geneVersionA.getWeight() + geneVersionB.getWeight()) / 2);
 
                 // If in either version the gene is disabled, there's a chance that it stays disabled in the selected
                 // gene.
                 if (geneVersionA.isEnabled() != geneVersionB.isEnabled()) {
-                    if (NRandom.getRandomDouble() < config.mateKeepGeneDisabledProbability())
+                    if (PRNG.getRandomDouble() < config.mateKeepGeneDisabledProbability())
                         selectedGene.disable();
                     else {
                         selectedGene.enable();
@@ -91,7 +91,7 @@ public class Crossover {
                     linkInParentB && parentBLinks.size() < parentALinks.size()) {
                     selectedGene = new LinkGene(linkGene);
                 } // Parents have the same number of genes, randomly determine whether to take the gene or not
-                else if (parentALinks.size() == parentBLinks.size() && NRandom.getRandomBoolean())
+                else if (parentALinks.size() == parentBLinks.size() && PRNG.getRandomBoolean())
                     selectedGene = new LinkGene(linkGene);
 
             } else // Disjoint/excess genes with different fitness: Take the genes from the parent with the highest fitness

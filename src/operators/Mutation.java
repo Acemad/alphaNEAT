@@ -6,7 +6,7 @@ import encoding.LinkGene;
 import encoding.NodeGene;
 import encoding.NodeType;
 import engine.NEATConfig;
-import engine.NRandom;
+import engine.PRNG;
 import innovation.InnovationDB;
 import util.Link;
 
@@ -40,7 +40,7 @@ public class Mutation {
         // 3. Clone the genome
         Genome mutatedGenome = new Genome(genome, innovationDB);
         // 4. Select a random link from the list of possible links
-        Link selectedLink = possibleLinks.get(NRandom.getRandomInt(possibleLinks.size()));
+        Link selectedLink = possibleLinks.get(PRNG.getRandomInt(possibleLinks.size()));
         // 5. Generate a new LinkGene using the selected link and add it to the genome
         mutatedGenome.addNewLink(new LinkGene(selectedLink.getSource(), selectedLink.getDestination(), innovationDB));
 
@@ -70,7 +70,13 @@ public class Mutation {
         if (links.isEmpty()) return genome;
         // Retrieve a random link
         // TODO This should prioritize older links
-        LinkGene selectedLink = links.get(NRandom.getRandomInt(links.size()));
+        links.sort(null);
+        // System.out.println("links = " + links);
+        LinkGene selectedLink;
+        if (PRNG.getRandomDouble() < 0)
+            selectedLink = links.get(PRNG.getRandomInt(Math.round(links.size() * 0.5f)));
+        else
+            selectedLink = links.get(PRNG.getRandomInt(links.size()));
 
         // 3. Disable the selected link
         selectedLink.disable();
@@ -123,7 +129,7 @@ public class Mutation {
         for (LinkGene linkGene : mutatedGenome.getEnabledLinkGenes()) {
 
             // A 50/50 chance to use more sever parameters. (As used in Stanley's NEAT implementation)
-            if (NRandom.getRandomBoolean()) { // Severe
+            if (PRNG.getRandomBoolean()) { // Severe
                 replacementProbability = 0.9;
                 perturbationProbability = 0.7;
             } else { // Normal
@@ -132,16 +138,16 @@ public class Mutation {
             }
 
             // Roll a dice
-            double chance = NRandom.getRandomDouble();
+            double chance = PRNG.getRandomDouble();
 
             // Depending on chance, either perturb the weight, replace it entirely by a new weight, or leave it
             if (chance < perturbationProbability)
                 // Perturb: Add a fraction of a random weight to the current weight
-                linkGene.setWeight(linkGene.getWeight() + (NRandom.getRandomWeight(
+                linkGene.setWeight(linkGene.getWeight() + (PRNG.getRandomWeight(
                         innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax()) * perturbationStrength));
             else if (chance < replacementProbability)
                 // Replace weight: generate a new random weight
-                linkGene.setWeight(NRandom.getRandomWeight(innovationDB.getWeightRangeMin(),
+                linkGene.setWeight(PRNG.getRandomWeight(innovationDB.getWeightRangeMin(),
                         innovationDB.getWeightRangeMax()));
         }
 
@@ -165,7 +171,7 @@ public class Mutation {
         if (mutatedGenome.getLinkGenes().isEmpty()) return genome;
 
         // 2. Retrieve a random link gene
-        LinkGene gene = mutatedGenome.getLinkGenes().get(NRandom.getRandomInt(mutatedGenome.getLinkGenes().size()));
+        LinkGene gene = mutatedGenome.getLinkGenes().get(PRNG.getRandomInt(mutatedGenome.getLinkGenes().size()));
 
         // 3. If the gene is enabled
         if (gene.isEnabled()) {
@@ -205,7 +211,7 @@ public class Mutation {
         // 3. if there is at least one disabled gene, chose a random one and enable it. Otherwise, just return
         // the genome
         if (!disabledLinkGenes.isEmpty()) {
-            disabledLinkGenes.get(NRandom.getRandomInt(disabledLinkGenes.size())).enable();
+            disabledLinkGenes.get(PRNG.getRandomInt(disabledLinkGenes.size())).enable();
         } else
             return genome;
 
@@ -234,7 +240,7 @@ public class Mutation {
 
         // 3. Mutate the node genes according to mutateActivationRate
         for (NodeGene mutableNodeGene : mutableNodeGenes) {
-            if (NRandom.getRandomDouble() < mutateActivationRate)
+            if (PRNG.getRandomDouble() < mutateActivationRate)
                 mutableNodeGene.setActivationFunction(ActivationType.getRandomType(allowedActivations));
         }
 

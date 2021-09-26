@@ -1,6 +1,6 @@
 package encoding;
 
-import engine.NRandom;
+import engine.PRNG;
 import innovation.InnovationDB;
 
 import java.io.Serializable;
@@ -37,7 +37,7 @@ public class LinkGene implements Comparable<LinkGene>, Serializable {
         this.destinationNodeId = destinationNodeId;
 
         // The weight is obtained from the innovations DB's centralised random object
-        this.weight = NRandom.getRandomWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax());
+        this.weight = PRNG.getRandomWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax());
 
         isLoop = (sourceNodeId == destinationNodeId);
     }
