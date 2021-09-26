@@ -115,10 +115,10 @@ public class Mutation {
      *
      * @param genome The genome to mutate
      * @param innovationDB The innovation database
-     * @param perturbationStrength The strength of weight perturbation
+     * @param config The config instance containing parameter values
      * @return A mutated genome
      */
-    public static Genome mutateWeights(Genome genome, InnovationDB innovationDB, double perturbationStrength) {
+    public static Genome mutateWeights(Genome genome, InnovationDB innovationDB, NEATConfig config) {
 
         // Chance of perturbing / replacing a connection weight. replacementProbability > perturbationProbability
         double replacementProbability;
@@ -146,12 +146,21 @@ public class Mutation {
             // Depending on chance, either perturb the weight, replace it entirely by a new weight, or leave it
             if (chance < perturbationProbability)
                 // Perturb: Add a fraction of a random weight to the current weight
-                linkGene.setWeight(linkGene.getWeight() + (PRNG.nextWeight(
-                        innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax()) * perturbationStrength));
+                linkGene.setWeight(linkGene.getWeight() +
+                        (PRNG.nextWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax()) *
+                                config.weightPerturbationStrength()));
             else if (chance < replacementProbability)
                 // Replace weight: generate a new random weight
                 linkGene.setWeight(PRNG.nextWeight(innovationDB.getWeightRangeMin(),
                         innovationDB.getWeightRangeMax()));
+
+            // Cap the weights:
+            if (config.capWeights()) {
+                if (linkGene.getWeight() > innovationDB.getWeightRangeMax())
+                    linkGene.setWeight(innovationDB.getWeightRangeMax());
+                else if (linkGene.getWeight() < innovationDB.getWeightRangeMin())
+                    linkGene.setWeight(innovationDB.getWeightRangeMin());
+            }
         }
 
         // Return the mutated genome

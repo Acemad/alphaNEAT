@@ -228,7 +228,7 @@ public class Species implements Comparable<Species>, Serializable {
         if (!structuralMutation) {
             // Weight mutation
             if (PRNG.nextDouble() < config.mutateWeightProbability()) {
-                mutatedGenome = Mutation.mutateWeights(mutatedGenome, innovationDB, config.weightPerturbationStrength());
+                mutatedGenome = Mutation.mutateWeights(mutatedGenome, innovationDB, config);
                 /*Stats*/ reproductionStats.weightMutations().plusOne();
             }
             // ToggleEnable mutation

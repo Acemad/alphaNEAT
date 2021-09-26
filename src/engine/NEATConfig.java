@@ -59,6 +59,7 @@ public class NEATConfig {
     private double mutateAddNodeOldLinksPriority;
     private double mutateAddLinkProbability;
     private double mutateWeightProbability;
+    private boolean capWeights;
     private double mutateToggleEnableProbability;
     private double mutateReEnableProbability;
     private double mutateActivationProbability;
@@ -119,6 +120,7 @@ public class NEATConfig {
         mutateAddNodeOldLinksPriority = Double.parseDouble(configs.getProperty("mutateAddNodeOldLinksPriority"));
         mutateAddLinkProbability = Double.parseDouble(configs.getProperty("mutateAddLinkProbability"));
         mutateWeightProbability = Double.parseDouble(configs.getProperty("mutateWeightProbability"));
+        capWeights = Boolean.parseBoolean(configs.getProperty("capWeights"));
         mutateToggleEnableProbability = Double.parseDouble(configs.getProperty("mutateToggleEnableProbability"));
         mutateReEnableProbability = Double.parseDouble(configs.getProperty("mutateReEnableProbability"));
         mutateActivationProbability = Double.parseDouble(configs.getProperty("mutateActivationProbability"));
@@ -329,5 +331,9 @@ public class NEATConfig {
 
     public double mutateAddNodeOldLinksPriority() {
         return mutateAddNodeOldLinksPriority;
+    }
+
+    public boolean capWeights() {
+        return capWeights;
     }
 }
