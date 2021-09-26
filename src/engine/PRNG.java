@@ -3,15 +3,16 @@ package engine;
 import org.apache.commons.rng.UniformRandomProvider;
 import org.apache.commons.rng.simple.RandomSource;
 
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
-
+/**
+ * A PRNG wrapper used as a central random number generator. The underlying generator can be changed by
+ * modifying the random variable
+ * @author Acemad
+ */
 public class PRNG {
 
     // The random number generator used throughout the course of evolution
     // private static final Random random = ThreadLocalRandom.current();
     private static final UniformRandomProvider random = RandomSource.XOR_SHIFT_1024_S_PHI.create();
-
 
     /**
      * Random weight generator. Generates random doubles in the range [weightRangeMin, weightRangeMax[
@@ -19,7 +20,7 @@ public class PRNG {
      *
      * @return A random double in the range specified by the parameters
      */
-    public static double getRandomWeight(double min, double max) {
+    public static double nextWeight(double min, double max) {
         if (min < max)
             return (Math.abs(min - max)) * random.nextDouble() + min;
         else
@@ -30,7 +31,7 @@ public class PRNG {
      * Generates a random double in the range [0, 1[
      * @return A random double
      */
-    public static double getRandomDouble() {
+    public static double nextDouble() {
         return random.nextDouble();
         /*double gaussian = random.nextGaussian();
         if (gaussian >= 1 || gaussian < 0)
@@ -43,7 +44,7 @@ public class PRNG {
      * @param bound Value of the upper bound
      * @return A random integer
      */
-    public static int getRandomInt(int bound) {
+    public static int nextInt(int bound) {
         return random.nextInt(bound);
     }
 
@@ -51,16 +52,8 @@ public class PRNG {
      * Returns a random boolean
      * @return random boolean value
      */
-    public static boolean getRandomBoolean() {
+    public static boolean nextBoolean() {
         return random.nextBoolean();
-    }
-
-    /**
-     * Returns the random number generator
-     * @return Random generator
-     */
-    public static Random getRandom() {
-        return ThreadLocalRandom.current();
     }
 
 }

@@ -60,7 +60,7 @@ public class Crossover {
                 LinkGene geneVersionB = parentBLinks.get(parentBLinks.indexOf(linkGene));
 
                 // Chose one version at random, and add the missing nodes related to this gene
-                if (PRNG.getRandomBoolean()) {
+                if (PRNG.nextBoolean()) {
                     selectedGene = new LinkGene(geneVersionA);
                     addMissingNodes(offspring, selectedGene, parentANodes);
                 }
@@ -71,13 +71,13 @@ public class Crossover {
 
                 // Averaging: compute the average weight of both genes if the probability permits. Otherwise, just keep
                 // the weight of the selected gene
-                if (PRNG.getRandomDouble() < config.mateAveragingProbability())
+                if (PRNG.nextDouble() < config.mateAveragingProbability())
                     selectedGene.setWeight((geneVersionA.getWeight() + geneVersionB.getWeight()) / 2);
 
                 // If in either version the gene is disabled, there's a chance that it stays disabled in the selected
                 // gene.
                 if (geneVersionA.isEnabled() != geneVersionB.isEnabled()) {
-                    if (PRNG.getRandomDouble() < config.mateKeepGeneDisabledProbability())
+                    if (PRNG.nextDouble() < config.mateKeepGeneDisabledProbability())
                         selectedGene.disable();
                     else {
                         selectedGene.enable();
@@ -91,7 +91,7 @@ public class Crossover {
                     linkInParentB && parentBLinks.size() < parentALinks.size()) {
                     selectedGene = new LinkGene(linkGene);
                 } // Parents have the same number of genes, randomly determine whether to take the gene or not
-                else if (parentALinks.size() == parentBLinks.size() && PRNG.getRandomBoolean())
+                else if (parentALinks.size() == parentBLinks.size() && PRNG.nextBoolean())
                     selectedGene = new LinkGene(linkGene);
 
             } else // Disjoint/excess genes with different fitness: Take the genes from the parent with the highest fitness

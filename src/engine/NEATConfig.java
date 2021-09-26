@@ -56,6 +56,7 @@ public class NEATConfig {
     private double mateKeepGeneDisabledProbability;
 
     private double mutateAddNodeProbability;
+    private double mutateAddNodeOldLinksPriority;
     private double mutateAddLinkProbability;
     private double mutateWeightProbability;
     private double mutateToggleEnableProbability;
@@ -115,6 +116,7 @@ public class NEATConfig {
         mateKeepGeneDisabledProbability = Double.parseDouble(configs.getProperty("mateKeepGeneDisabledProbability"));
 
         mutateAddNodeProbability = Double.parseDouble(configs.getProperty("mutateAddNodeProbability"));
+        mutateAddNodeOldLinksPriority = Double.parseDouble(configs.getProperty("mutateAddNodeOldLinksPriority"));
         mutateAddLinkProbability = Double.parseDouble(configs.getProperty("mutateAddLinkProbability"));
         mutateWeightProbability = Double.parseDouble(configs.getProperty("mutateWeightProbability"));
         mutateToggleEnableProbability = Double.parseDouble(configs.getProperty("mutateToggleEnableProbability"));
@@ -323,5 +325,9 @@ public class NEATConfig {
 
     public int speciesNumberTarget() {
         return speciesNumberTarget;
+    }
+
+    public double mutateAddNodeOldLinksPriority() {
+        return mutateAddNodeOldLinksPriority;
     }
 }

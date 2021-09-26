@@ -141,10 +141,10 @@ public class Species implements Comparable<Species>, Serializable {
             // Generate one offspring
             // If there is only one member and the mutate-only probability is high enough, generate an offspring through
             // mutation only
-            if (members.size() < 2 || PRNG.getRandomDouble() < config.mutateOnlyProbability()) { // Mutate only
+            if (members.size() < 2 || PRNG.nextDouble() < config.mutateOnlyProbability()) { // Mutate only
 
                 // Select a random Genome and clone it
-                Genome randomGenome = members.get(PRNG.getRandomInt(members.size()));
+                Genome randomGenome = members.get(PRNG.nextInt(members.size()));
                 offspring = new Genome(randomGenome, innovationDB);
 
                 // Mutate the newly created offspring
@@ -157,8 +157,8 @@ public class Species implements Comparable<Species>, Serializable {
 
                 // Select two parents randomly
                 List<Genome> parents = new ArrayList<>(members);
-                Genome parentA = parents.remove(PRNG.getRandomInt(parents.size()));
-                Genome parentB = parents.remove(PRNG.getRandomInt(parents.size()));
+                Genome parentA = parents.remove(PRNG.nextInt(parents.size()));
+                Genome parentB = parents.remove(PRNG.nextInt(parents.size()));
 
                 // Apply crossover
                 offspring = Crossover.multipointCrossover(parentA, parentB, config, innovationDB);
@@ -166,7 +166,7 @@ public class Species implements Comparable<Species>, Serializable {
                 /*Stats*/ reproductionStats.matings().plusOne();
 
                 // Mutate the resulting offspring only if the probability of mating only is low enough
-                if (PRNG.getRandomDouble() > config.mateOnlyProbability()) {
+                if (PRNG.nextDouble() > config.mateOnlyProbability()) {
                     offspring = mutate(offspring, innovationDB, config, reproductionStats);
 
                     /*Stats*/ reproductionStats.mutations().plusOne();
@@ -207,16 +207,16 @@ public class Species implements Comparable<Species>, Serializable {
         boolean structuralMutation = false;
 
         // AddNode mutation
-        if (PRNG.getRandomDouble() < config.mutateAddNodeProbability()) {
+        if (PRNG.nextDouble() < config.mutateAddNodeProbability()) {
             // System.out.println("Add Node mutation start: " + genome.toConciseString());
-            mutatedGenome = Mutation.addNewNode(mutatedGenome, innovationDB);
+            mutatedGenome = Mutation.addNewNode(mutatedGenome, innovationDB, config);
             structuralMutation = true;
 
             /*Stats*/ reproductionStats.addNodeMutations().plusOne();
         }
 
         // AddLink mutation
-        if (PRNG.getRandomDouble() < config.mutateAddLinkProbability()) {
+        if (PRNG.nextDouble() < config.mutateAddLinkProbability()) {
             // System.out.println("Add Link mutation start: " + genome.toConciseString());
             mutatedGenome = Mutation.addNewLink(mutatedGenome, innovationDB, config);
             structuralMutation = true;
@@ -227,22 +227,22 @@ public class Species implements Comparable<Species>, Serializable {
         // If no structural mutation succeeded, proceed with the other mutations
         if (!structuralMutation) {
             // Weight mutation
-            if (PRNG.getRandomDouble() < config.mutateWeightProbability()) {
+            if (PRNG.nextDouble() < config.mutateWeightProbability()) {
                 mutatedGenome = Mutation.mutateWeights(mutatedGenome, innovationDB, config.weightPerturbationStrength());
                 /*Stats*/ reproductionStats.weightMutations().plusOne();
             }
             // ToggleEnable mutation
-            if (PRNG.getRandomDouble() < config.mutateToggleEnableProbability()) {
+            if (PRNG.nextDouble() < config.mutateToggleEnableProbability()) {
                 mutatedGenome = Mutation.mutateToggleEnable(mutatedGenome, innovationDB);
                 /*Stats*/ reproductionStats.toggleEnableMutations().plusOne();
             }
             // ReEnable mutation
-            if (PRNG.getRandomDouble() < config.mutateReEnableProbability()) {
+            if (PRNG.nextDouble() < config.mutateReEnableProbability()) {
                 mutatedGenome = Mutation.mutateReEnable(mutatedGenome, innovationDB);
                 /*Stats*/ reproductionStats.reEnableMutations().plusOne();
             }
             // Activation mutation
-            if (PRNG.getRandomDouble() < config.mutateActivationProbability()) {
+            if (PRNG.nextDouble() < config.mutateActivationProbability()) {
                 mutatedGenome = Mutation.mutateActivationType(mutatedGenome, innovationDB, config.mutateActivationRate(),
                         config.allowedActivations());
                 /*Stats*/ reproductionStats.activationMutations().plusOne();

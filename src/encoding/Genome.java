@@ -124,7 +124,7 @@ public class Genome implements Comparable<Genome>, Serializable {
         // them to the linkGenes list
         for (NodeGene inputNodeGene : inputNodeGenes)
             for (NodeGene outputNodeGene : outputNodeGenes) {
-                if (PRNG.getRandomDouble() < connectionProbability)
+                if (PRNG.nextDouble() < connectionProbability)
                     linkGenes.add(new LinkGene(inputNodeGene.getId(), outputNodeGene.getId(), innovationDB));
             }
 
@@ -132,7 +132,7 @@ public class Genome implements Comparable<Genome>, Serializable {
         // corresponding LinkGenes and adds them to the linkGenes list.
         if (innovationDB.getBiasNodeId() > 0)
             for (NodeGene outputNodeGene : outputNodeGenes) {
-                if (PRNG.getRandomDouble() < biasConnectionProbability)
+                if (PRNG.nextDouble() < biasConnectionProbability)
                     linkGenes.add(new LinkGene(biasNodeGene.getId(), outputNodeGene.getId(), innovationDB));
             }
     }
@@ -255,34 +255,34 @@ public class Genome implements Comparable<Genome>, Serializable {
 
         // Filter all links between hidden nodes
         // (Keep a single hidden layer: input->hidden, hidden->output only)
-        if (PRNG.getRandomDouble() < 1 - config.linksBetweenHiddenNodesRate())
+        if (PRNG.nextDouble() < 1 - config.linksBetweenHiddenNodesRate())
             possibleLinks.removeIf(link ->
                     getNodeGeneById(link.getSource()).getType() == NodeType.HIDDEN &&
                             getNodeGeneById(link.getDestination()).getType() == NodeType.HIDDEN);
 
         // Filter hidden node loops
-        if (PRNG.getRandomDouble() < 1 - config.hiddenLoopLinksRate())
+        if (PRNG.nextDouble() < 1 - config.hiddenLoopLinksRate())
             possibleLinks.removeIf(link -> (link.getSource() == link.getDestination() &&
                     getNodeGeneById(link.getSource()).getType() == NodeType.HIDDEN));
 
         // Filter output node loops
-        if (PRNG.getRandomDouble() < 1 - config.outputLoopLinksRate())
+        if (PRNG.nextDouble() < 1 - config.outputLoopLinksRate())
             possibleLinks.removeIf(link -> link.getSource() == link.getDestination() &&
                     getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT);
 
         // Filter output to hidden
-        if (PRNG.getRandomDouble() < 1 - config.outputToHiddenLinksRate())
+        if (PRNG.nextDouble() < 1 - config.outputToHiddenLinksRate())
             possibleLinks.removeIf(link -> getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT &&
                     getNodeGeneById(link.getDestination()).getType() == NodeType.HIDDEN);
 
         // Filter output to output
-        if (PRNG.getRandomDouble() < 1 - config.outputToOutputLinksRate())
+        if (PRNG.nextDouble() < 1 - config.outputToOutputLinksRate())
             possibleLinks.removeIf(link -> getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT &&
                     getNodeGeneById(link.getDestination()).getType() == NodeType.OUTPUT &&
                     link.getSource() != link.getDestination());
 
         // Filter hidden to hidden recurrent
-        if (PRNG.getRandomDouble() < 1 - config.hiddenToHiddenBackwardLinksRate())
+        if (PRNG.nextDouble() < 1 - config.hiddenToHiddenBackwardLinksRate())
             possibleLinks.removeIf(link -> {
                 NodeGene source = getNodeGeneById(link.getSource());
                 NodeGene destination = getNodeGeneById(link.getDestination());
@@ -292,7 +292,7 @@ public class Genome implements Comparable<Genome>, Serializable {
             });
 
         // Filter hidden to hidden, same distance from output (same level)
-        if (PRNG.getRandomDouble() < 1 - config.hiddenToHiddenSameLevelLinksRate())
+        if (PRNG.nextDouble() < 1 - config.hiddenToHiddenSameLevelLinksRate())
             possibleLinks.removeIf(link -> {
                 NodeGene source = getNodeGeneById(link.getSource());
                 NodeGene destination = getNodeGeneById(link.getDestination());
@@ -685,7 +685,7 @@ public class Genome implements Comparable<Genome>, Serializable {
         }
 
         // Either remove the dangling nodes, and their connections, or reconnect them.
-        if (PRNG.getRandomDouble() < removeProbability) {
+        if (PRNG.nextDouble() < removeProbability) {
             // Remove dangling nodes
             for (NodeGene danglingNode : danglingNodes)
                 removeHiddenNode(danglingNode);
@@ -704,7 +704,7 @@ public class Genome implements Comparable<Genome>, Serializable {
 
                 // if not, create a link to a random output node
                 if (!disabledLinkExists) {
-                    NodeGene randomOutput = outputNodeGenes.get(PRNG.getRandomInt(outputNodeGenes.size()));
+                    NodeGene randomOutput = outputNodeGenes.get(PRNG.nextInt(outputNodeGenes.size()));
                     LinkGene newLink = new LinkGene(nonSourceNode.getId(), randomOutput.getId(), innovationDB);
                     addNewLink(newLink);
                 }
@@ -723,7 +723,7 @@ public class Genome implements Comparable<Genome>, Serializable {
 
                 // if not, create a link to a random output node
                 if (!disabledLinkExists) {
-                    NodeGene randomInput = inputNodeGenes.get(PRNG.getRandomInt(inputNodeGenes.size()));
+                    NodeGene randomInput = inputNodeGenes.get(PRNG.nextInt(inputNodeGenes.size()));
                     LinkGene newLink = new LinkGene(randomInput.getId(), nonDestinationNode.getId(), innovationDB);
                     addNewLink(newLink);
                 }

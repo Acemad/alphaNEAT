@@ -62,7 +62,7 @@ public enum ActivationType implements Serializable {
         // The string is converted to a list of ActivationTypes.
         List<ActivationType> allowedActivationTypes = getActivationTypesFromString(allowedActivations);
         // A random activation is returned
-        return allowedActivationTypes.get(PRNG.getRandomInt(allowedActivationTypes.size()));
+        return allowedActivationTypes.get(PRNG.nextInt(allowedActivationTypes.size()));
     }
 
     /**

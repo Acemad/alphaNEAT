@@ -40,7 +40,7 @@ public class Mutation {
         // 3. Clone the genome
         Genome mutatedGenome = new Genome(genome, innovationDB);
         // 4. Select a random link from the list of possible links
-        Link selectedLink = possibleLinks.get(PRNG.getRandomInt(possibleLinks.size()));
+        Link selectedLink = possibleLinks.get(PRNG.nextInt(possibleLinks.size()));
         // 5. Generate a new LinkGene using the selected link and add it to the genome
         mutatedGenome.addNewLink(new LinkGene(selectedLink.getSource(), selectedLink.getDestination(), innovationDB));
 
@@ -56,7 +56,7 @@ public class Mutation {
      * @param innovationDB The innovation database keeping track of the node and link ids
      * @return A mutated genome with a new id
      */
-    public static Genome addNewNode(Genome genome, InnovationDB innovationDB) {
+    public static Genome addNewNode(Genome genome, InnovationDB innovationDB, NEATConfig config) {
 
         // 1. Clone the genome
         Genome mutatedGenome = new Genome(genome, innovationDB);
@@ -68,15 +68,18 @@ public class Mutation {
         links.removeIf(linkGene -> linkGene.getSourceNodeId() == innovationDB.getBiasNodeId());
         // No link can be interrupted, return the genome as is
         if (links.isEmpty()) return genome;
-        // Retrieve a random link
-        // TODO This should prioritize older links
+
+        // Sort the links by id, smaller id come first, smaller id means the link is older.
         links.sort(null);
-        // System.out.println("links = " + links);
+
+        // Retrieve a random link
         LinkGene selectedLink;
-        if (PRNG.getRandomDouble() < 0)
-            selectedLink = links.get(PRNG.getRandomInt(Math.round(links.size() * 0.5f)));
+        if (PRNG.nextDouble() < config.mutateAddNodeOldLinksPriority())
+            // Prioritize older links, avoid selecting (interrupting) newer links
+            selectedLink = links.get(PRNG.nextInt(Math.round(links.size() * 0.8f)));
         else
-            selectedLink = links.get(PRNG.getRandomInt(links.size()));
+            // Select any link
+            selectedLink = links.get(PRNG.nextInt(links.size()));
 
         // 3. Disable the selected link
         selectedLink.disable();
@@ -129,7 +132,7 @@ public class Mutation {
         for (LinkGene linkGene : mutatedGenome.getEnabledLinkGenes()) {
 
             // A 50/50 chance to use more sever parameters. (As used in Stanley's NEAT implementation)
-            if (PRNG.getRandomBoolean()) { // Severe
+            if (PRNG.nextBoolean()) { // Severe
                 replacementProbability = 0.9;
                 perturbationProbability = 0.7;
             } else { // Normal
@@ -138,16 +141,16 @@ public class Mutation {
             }
 
             // Roll a dice
-            double chance = PRNG.getRandomDouble();
+            double chance = PRNG.nextDouble();
 
             // Depending on chance, either perturb the weight, replace it entirely by a new weight, or leave it
             if (chance < perturbationProbability)
                 // Perturb: Add a fraction of a random weight to the current weight
-                linkGene.setWeight(linkGene.getWeight() + (PRNG.getRandomWeight(
+                linkGene.setWeight(linkGene.getWeight() + (PRNG.nextWeight(
                         innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax()) * perturbationStrength));
             else if (chance < replacementProbability)
                 // Replace weight: generate a new random weight
-                linkGene.setWeight(PRNG.getRandomWeight(innovationDB.getWeightRangeMin(),
+                linkGene.setWeight(PRNG.nextWeight(innovationDB.getWeightRangeMin(),
                         innovationDB.getWeightRangeMax()));
         }
 
@@ -171,7 +174,7 @@ public class Mutation {
         if (mutatedGenome.getLinkGenes().isEmpty()) return genome;
 
         // 2. Retrieve a random link gene
-        LinkGene gene = mutatedGenome.getLinkGenes().get(PRNG.getRandomInt(mutatedGenome.getLinkGenes().size()));
+        LinkGene gene = mutatedGenome.getLinkGenes().get(PRNG.nextInt(mutatedGenome.getLinkGenes().size()));
 
         // 3. If the gene is enabled
         if (gene.isEnabled()) {
@@ -211,7 +214,7 @@ public class Mutation {
         // 3. if there is at least one disabled gene, chose a random one and enable it. Otherwise, just return
         // the genome
         if (!disabledLinkGenes.isEmpty()) {
-            disabledLinkGenes.get(PRNG.getRandomInt(disabledLinkGenes.size())).enable();
+            disabledLinkGenes.get(PRNG.nextInt(disabledLinkGenes.size())).enable();
         } else
             return genome;
 
@@ -240,7 +243,7 @@ public class Mutation {
 
         // 3. Mutate the node genes according to mutateActivationRate
         for (NodeGene mutableNodeGene : mutableNodeGenes) {
-            if (PRNG.getRandomDouble() < mutateActivationRate)
+            if (PRNG.nextDouble() < mutateActivationRate)
                 mutableNodeGene.setActivationFunction(ActivationType.getRandomType(allowedActivations));
         }
 

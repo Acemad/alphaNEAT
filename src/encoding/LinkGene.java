@@ -37,7 +37,7 @@ public class LinkGene implements Comparable<LinkGene>, Serializable {
         this.destinationNodeId = destinationNodeId;
 
         // The weight is obtained from the innovations DB's centralised random object
-        this.weight = PRNG.getRandomWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax());
+        this.weight = PRNG.nextWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax());
 
         isLoop = (sourceNodeId == destinationNodeId);
     }
