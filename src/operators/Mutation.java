@@ -148,7 +148,7 @@ public class Mutation {
                 // Perturb: Add a fraction of a random weight to the current weight
                 linkGene.setWeight(linkGene.getWeight() +
                         (PRNG.nextWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax()) *
-                                config.weightPerturbationStrength()));
+                                PRNG.nextDouble() * PRNG.nextDouble()/*config.weightPerturbationStrength()*/));
             else if (chance < replacementProbability)
                 // Replace weight: generate a new random weight
                 linkGene.setWeight(PRNG.nextWeight(innovationDB.getWeightRangeMin(),

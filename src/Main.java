@@ -220,7 +220,7 @@ public class Main {
         String baseName = parentDir + "xor";
 
         DescriptiveStatistics speciesCountMean = new DescriptiveStatistics();
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 50; i++) {
             ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
             aneat.run(Main::evalXOR, 1000, null);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
@@ -263,10 +263,11 @@ public class Main {
                             .collect(Collectors.toList()));*/
 
             System.out.println("Mean Species nb:" + aneat.getEvolutionStats().getSpeciesCountStats().getMean());
-            speciesCountMean.addValue(aneat.getEvolutionStats().getGenomesFitnessStats().get(999).getMax());
+            speciesCountMean.addValue(aneat.getEvolutionStats().getBestGenomeNodesStats().getValues()[999]);
         }
 
         System.out.println("speciesCountMean = \n" + speciesCountMean);
+
 
 
         /*Population population = Population.readFromFile(baseName + "Pop-1000");
