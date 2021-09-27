@@ -48,6 +48,8 @@ public class EvolutionStats implements Serializable {
     // Species stats: species nodes/links stats, containing topological statistics of the genomes of each species
     private final Map<Integer, List<DescriptiveStatistics>> speciesNodesStats = new HashMap<>();
     private final Map<Integer, List<DescriptiveStatistics>> speciesLinksStats = new HashMap<>();
+    // Species stats: species mean complexity stats
+    private final Map<Integer, DescriptiveStatistics> speciesMeanComplexityStats = new HashMap<>();
     // Species stats: for each species, keep a list of the population ages this species existed in
     private final Map<Integer, List<Integer>> speciesExistenceStats = new HashMap<>();
 
@@ -160,6 +162,7 @@ public class EvolutionStats implements Serializable {
             DescriptiveStatistics fitnessStats = new DescriptiveStatistics();
             DescriptiveStatistics nodesStats = new DescriptiveStatistics();
             DescriptiveStatistics linkStats = new DescriptiveStatistics();
+
             for (Genome member : species.getMembers()) {
                 fitnessStats.addValue(member.getFitness());
                 nodesStats.addValue(member.getHiddenNodeGenes().size());
@@ -175,12 +178,18 @@ public class EvolutionStats implements Serializable {
                 speciesLinksStats.put(species.getId(), new ArrayList<>(List.of(linkStats)));
                 speciesExistenceStats.put(species.getId(), new ArrayList<>(List.of(population.getAge())));
 
+                DescriptiveStatistics speciesMeanComplexity = new DescriptiveStatistics();
+                speciesMeanComplexity.addValue(species.meanComplexity());
+                speciesMeanComplexityStats.put(species.getId(), speciesMeanComplexity);
+
             } else {
                 // Previously visited species, retrieve the stats lists and add new data
                 speciesFitnessStats.get(species.getId()).add(fitnessStats);
                 speciesNodesStats.get(species.getId()).add(nodesStats);
                 speciesLinksStats.get(species.getId()).add(linkStats);
                 speciesExistenceStats.get(species.getId()).add(population.getAge());
+
+                speciesMeanComplexityStats.get(species.getId()).addValue(species.meanComplexity());
             }
         }
 
@@ -359,5 +368,9 @@ public class EvolutionStats implements Serializable {
 
     public DescriptiveStatistics getMeanComplexityStats() {
         return meanComplexityStats;
+    }
+
+    public Map<Integer, DescriptiveStatistics> getSpeciesMeanComplexityStats() {
+        return speciesMeanComplexityStats;
     }
 }

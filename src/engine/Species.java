@@ -276,6 +276,17 @@ public class Species implements Comparable<Species>, Serializable {
         }
     }
 
+    /**
+     * Compute the mean complexity of the members of the species
+     * @return Mean complexity of the members of this species
+     */
+    public double meanComplexity() {
+        double sum = 0.0;
+        for (Genome member : members)
+            sum += member.complexity();
+        return sum / members.size();
+    }
+
     @Override
     public String toString() {
         return "Species " + id +
