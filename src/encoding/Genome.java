@@ -833,6 +833,15 @@ public class Genome implements Comparable<Genome>, Serializable {
         return previousNodes;
     }
 
+    /**
+     * Computes the complexity of the genome. In this version, complexity is simply the number of link genes in the
+     * genome
+     * @return Integer value representing complexity
+     */
+    public int complexity() {
+        return linkGenes.size();
+    }
+
     @Override
     public String toString() {
         nodeGenes.sort(null);
@@ -898,9 +907,7 @@ public class Genome implements Comparable<Genome>, Serializable {
         int fitnessCompareResult = Double.compare(fitness, genome.getFitness());
         if (fitnessCompareResult == 0) // Equal fitness
             // Compare network complexity (number of linkGenes), lower is better
-            return - Integer.compare(linkGenes.size(), genome.getLinkGenes().size());
-            // return - Integer.compare(getEnabledLinkGenes().size(), genome.getEnabledLinkGenes().size());
-            // return - Integer.compare(nodeGenes.size(), genome.getNodeGenes().size());
+            return - Integer.compare(complexity(), genome.complexity());
         else
             return fitnessCompareResult;
 

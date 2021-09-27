@@ -362,6 +362,17 @@ public class Population implements Serializable {
     }
 
     /**
+     * Compute the mean complexity of the population
+     * @return Mean complexity of the population
+     */
+    public double meanComplexity() {
+        double sum = 0.0;
+        for (Genome genome : population)
+            sum += genome.complexity();
+        return sum / population.size();
+    }
+
+    /**
      * Saves the state of this population instance to a given file on disk. If the file does not exist, it will be
      * created. This is useful for resuming the evolution with an older population.
      * @param filePath The path to the file to save population into

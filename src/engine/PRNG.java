@@ -22,9 +22,9 @@ public class PRNG {
      */
     public static double nextWeight(double min, double max) {
         if (min < max)
-            return (Math.abs(min - max)) * random.nextDouble() + min;
+            return (Math.abs(min - max)) * nextDouble() + min;
         else
-            return (Math.abs(max - min)) * random.nextDouble() + max;
+            return (Math.abs(max - min)) * nextDouble() + max;
     }
 
     /**

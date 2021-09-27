@@ -220,7 +220,7 @@ public class Main {
         String baseName = parentDir + "xor";
 
         DescriptiveStatistics speciesCountMean = new DescriptiveStatistics();
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 20; i++) {
             ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
             aneat.run(Main::evalXOR, 1000, null);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
