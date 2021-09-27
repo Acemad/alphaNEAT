@@ -69,6 +69,8 @@ public class EvolutionStats implements Serializable {
     private final DescriptiveStatistics reEnableMutationsStats = new DescriptiveStatistics();
     private final DescriptiveStatistics activationMutationsStats = new DescriptiveStatistics();
 
+    private final DescriptiveStatistics meanComplexityStats = new DescriptiveStatistics();
+
     /**
      * This method is called after the speciation step of each generation with the actual state of the population. It
      * updates the population fitness statistics, population topology statistics, the best genome topology statistics,
@@ -82,6 +84,8 @@ public class EvolutionStats implements Serializable {
         updatePopulationTopologyStats(population);
         updateBestGenomeTopologyStats(population);
         updateSpeciesStats(population);
+
+        meanComplexityStats.addValue(population.meanComplexity());
     }
 
     /**
@@ -353,4 +357,7 @@ public class EvolutionStats implements Serializable {
         return genomesNodesStats;
     }
 
+    public DescriptiveStatistics getMeanComplexityStats() {
+        return meanComplexityStats;
+    }
 }

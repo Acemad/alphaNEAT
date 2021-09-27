@@ -262,7 +262,7 @@ public class Main {
                     Arrays.stream(aneat.getEvolutionStats().getMeanLinksStats().getValues()).boxed()
                             .collect(Collectors.toList()));*/
 
-            System.out.println("Mean Species nb:" + aneat.getEvolutionStats().getSpeciesCountStats().getMean());
+            System.out.println("Mean Complexity:" + aneat.getEvolutionStats().getMeanComplexityStats().getMean());
             speciesCountMean.addValue(aneat.getEvolutionStats().getBestGenomeNodesStats().getValues()[999]);
         }
 
