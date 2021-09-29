@@ -620,7 +620,7 @@ public class Genome implements Comparable<Genome>, Serializable {
      *
      * @param nodeGene The nodeGene to remove
      */
-    public void removeHiddenNode(NodeGene nodeGene) {
+    public void removeHiddenNode(NodeGene nodeGene, boolean removeRelatedLinks) {
 
         // First, check existence
         if (hiddenNodeGenes.contains(nodeGene)) {
@@ -629,9 +629,10 @@ public class Genome implements Comparable<Genome>, Serializable {
             nodeGenesIds.remove(nodeGene.getId());
 
             // Remove related links
-            linkGenes.removeIf(linkGene ->
-                    linkGene.getDestinationNodeId() == nodeGene.getId() ||
-                    linkGene.getSourceNodeId() == nodeGene.getId());
+            if (removeRelatedLinks)
+                linkGenes.removeIf(linkGene ->
+                        linkGene.getDestinationNodeId() == nodeGene.getId() ||
+                        linkGene.getSourceNodeId() == nodeGene.getId());
         }
     }
 
@@ -644,7 +645,7 @@ public class Genome implements Comparable<Genome>, Serializable {
      * @param innovationDB The innovation database
      * @param removeProbability The probability of removing the dangling node and its related links from the genome
      */
-    public void fixDanglingNodes(InnovationDB innovationDB, double removeProbability) {
+    public int fixDanglingNodes(InnovationDB innovationDB, double removeProbability) {
 
         // Lists to hold dangling nodes and their types
         List<NodeGene> danglingNodes = new ArrayList<>();
@@ -688,7 +689,8 @@ public class Genome implements Comparable<Genome>, Serializable {
         if (PRNG.nextDouble() < removeProbability) {
             // Remove dangling nodes
             for (NodeGene danglingNode : danglingNodes)
-                removeHiddenNode(danglingNode);
+                removeHiddenNode(danglingNode, true);
+
         } else {
 
             // Reconnect dangling nodes with random output nodes for non-source nodes
@@ -729,6 +731,8 @@ public class Genome implements Comparable<Genome>, Serializable {
                 }
             }
         }
+
+        return danglingNodes.size();
     }
 
     public void updateNodeLevelsFrom(NodeGene nodeGene) {

@@ -3,15 +3,15 @@ import encoding.NodeGene;
 import encoding.NodeType;
 import encoding.phenotype.NeuralNetwork;
 import engine.ANEAT;
+import engine.NEATConfig;
 import engine.Population;
 import encoding.Genome;
-import engine.stats.EvolutionStats;
 import innovation.InnovationDB;
+import operators.Mutation;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import util.Link;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Main {
 
@@ -141,7 +141,6 @@ public class Main {
 
         // Crossover Test:
         // InnovationDB innovations = new InnovationDB(3,2,true, ActivationType.SIGMOID_STEEP, -1, 1);
-        InnovationDB innovations = new InnovationDB(2,1,true, ActivationType.SIGMOID_STEEP, -1, 1);
 
         //
         // Genome g1 = new Genome(innovations, 1, 1);
@@ -160,67 +159,41 @@ public class Main {
         // Genome g3 = Crossover.multipointCrossover(g1, g2, new NEATConfig("configs"));
         // System.out.println("\ng3: " + g3.toConciseString());
 
-        List<NodeGene> hiddenNodes = new ArrayList<>();
-        for (int i = 4; i < 4 + 2; i++)
-            hiddenNodes.add(new NodeGene(i, NodeType.HIDDEN, ActivationType.SIGMOID_STEEP));
+        InnovationDB innovations = new InnovationDB(2,1,true, ActivationType.SIGMOID_STEEP, -1, 1);
 
+
+        List<NodeGene> hiddenNodes = new ArrayList<>();
+        hiddenNodes.add(new NodeGene(4, NodeType.HIDDEN, ActivationType.SIGMOID_STEEP));
+        hiddenNodes.add(new NodeGene(5, NodeType.HIDDEN, ActivationType.SIGMOID_STEEP));
 
         List<Link> customLinks = new ArrayList<>();
-        customLinks.add(new Link(0,5));
+        customLinks.add(new Link(0,4));
         customLinks.add(new Link(1,4));
-        customLinks.add(new Link(1,3));
+        customLinks.add(new Link(1,5));
         customLinks.add(new Link(2,3));
-        customLinks.add(new Link(4,3));
-        // customLinks.add(new Link(4,5));
-        customLinks.add(new Link(4,3));
-        customLinks.add(new Link(3,3));
 
+        customLinks.add(new Link(4,5));
+        customLinks.add(new Link(4,3));
         customLinks.add(new Link(5,3));
-        // customLinks.add(new Link(6,4));
-        // customLinks.add(new Link(6,3));
 
+        Genome genome = new Genome(innovations, hiddenNodes, customLinks);
 
+        System.out.println("Before:\n" + genome.toConciseString());
 
-        // customLinks.add(new Link(7,10));
-        // customLinks.add(new Link(8,7));
-        // customLinks.add(new Link(8,4));
-        // customLinks.add(new Link(8,9));
-        // customLinks.add(new Link(9,10));
-        // customLinks.add(new Link(4,5));
-        // customLinks.add(new Link(10,5));
+        Genome mutated = Mutation.deleteLink(genome, innovations);
 
-        // Genome genome = new Genome(innovations, hiddenNodes, customLinks);
-        // genome.checkGenomeConsistency(innovations);
-        // genome.show();
-        // System.out.println("genome = " + genome);
-        // for (NodeGene nodeGene : genome.getNodeGenes())
-        //     System.out.println("Distance " + nodeGene.getId() + ": " + genome.distanceToOutput(nodeGene));
-
-        // System.out.println("Possible Links: \n" + genome.generatePossibleLinks(new NEATConfig("configs")));
+        System.out.println("After: \n" + mutated.toConciseString());
 
 
 
 
 
-
-        /*InnovationDB innovations = new InnovationDB(3,2,
-                true, ActivationType.SIGMOID, 2, 5);
-        for (int i = 0; i < 1000; i++) {
-            double rnd = NRandom.getRandomWeight();
-            if (rnd >= 2 && rnd < 5)
-                System.out.println( i + " rnd = " + rnd);
-            else
-                System.err.println("!!! rnd = " + rnd);
-
-        }*/
-
-        //Path.of()
         String parentDir = System.getProperty("user.home") + "\\Desktop\\xor\\";
         String configPath = parentDir + "configs.cfg";
         String baseName = parentDir + "xor";
 
-        DescriptiveStatistics speciesCountMean = new DescriptiveStatistics();
-        for (int i = 0; i < 0; i++) {
+        DescriptiveStatistics stats = new DescriptiveStatistics();
+        for (int i = 0; i < 20; i++) {
             ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
             aneat.run(Main::evalXOR, 1000, null);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
@@ -263,14 +236,18 @@ public class Main {
                             .collect(Collectors.toList()));*/
 
             System.out.println("Mean Complexity:" + aneat.getEvolutionStats().getMeanComplexityStats().getMean());
-            speciesCountMean.addValue(aneat.getEvolutionStats().getBestGenomeNodesStats().getValues()[999]);
+            stats.addValue(aneat.getEvolutionStats().getMeanComplexityStats().getMean());
         }
 
-        DescriptiveStatistics statistics = new DescriptiveStatistics();
-        statistics.addValue(2);
-        statistics.addValue(3);
-        System.out.println("Stats:" + Arrays.toString(statistics.getValues()));
-        // System.out.println("speciesCountMean = \n" + speciesCountMean);
+        // NEATConfig conf = new NEATConfig(configPath);
+        // System.out.println(conf);
+        // conf.switchToSimplifying();
+        // System.out.println("\nAfter:\n" + conf);
+        // conf.switchToComplexifying();
+        // System.out.println("\nAfter2:\n" + conf);
+
+
+        System.out.println("stats = \n" + stats);
 
 
 
@@ -283,40 +260,6 @@ public class Main {
         EvolutionStats stats = EvolutionStats.readFromFile(baseName + "Stats");
         System.out.println(Arrays.stream(stats.getBestGenomeNodesStats().getValues()).boxed().collect(Collectors.toList()));
         */
-
-
-        // evolve(1);
-    }
-
-    public static void evolve(int numGenerations) {
-
-        // Initialize population
-        Population population = new Population(2,1,1, true, 1, ActivationType.SIGMOID_STEEP, -1,1, 100);
-
-        // System.out.println("population Species Before: \n" + population.getAllSpeciesConciseStr());
-        // Evaluate population
-        System.out.println("Initial Population: \n" + population.toConciseString());
-        for (int i = 0; i < 1000; i++) {
-            // System.out.println("############### Generation " + i);
-            population.evolve(Main::evalXOR, null, null);
-            // System.out.println("Population: \n" + population.toConciseString());
-            System.out.println("Gen: " + i + " Top Fitness: " + population.getTopFitness() +
-                    " Species: " + population.getSpeciesCount() + " Population: " + population.getPopulationSize());
-        }
-
-        System.out.println("population = " + population.getBestGenome().toConciseString());
-
-
-
-
-        // Process weak genomes
-        // Staleness processing
-        // Spawn quantities
-        // Breeding new generation
-
-        // System.out.println("Final: \n" + population.toConciseString());
-        // System.out.println("population Species After: \n" + population.getAllSpeciesConciseStr());
-
 
     }
 

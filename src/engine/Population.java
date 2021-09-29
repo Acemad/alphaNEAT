@@ -1,6 +1,5 @@
 package engine;
 
-import activations.ActivationType;
 import encoding.Genome;
 import engine.stats.EvolutionStats;
 import engine.stats.ReproductionStats;
@@ -10,6 +9,7 @@ import util.ObjectSaver;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 
 /**
@@ -42,40 +42,20 @@ public class Population implements Serializable {
     // The best genome of the current generation
     private Genome bestGenome;
 
-    // Used to store the age of the population, in terms of how many evolution steps were performed.
-    // Useful for serialization
+    // Used to store the age of the population. How many evolution steps were performed?
     private int age = 0;
 
-    // Evolution statistics record keeper
-    // private final EvolutionStats evolutionStats = new EvolutionStats();
+    // Phased Search **************
 
-    /**
-     * Constructs a population of Genomes and initializes the associated innovations DB, based on the given number of
-     * input and output neurons, and the connection probability parameters.
-     *
-     * @param numInput The number of input neurons in each Genome
-     * @param numOutput The number of output neurons in each Genome
-     * @param connectionProbability The probability of connecting input to output neurons
-     * @param includeBias Whether a bias neuron is included or not
-     * @param biasConnectionProbability The probability of connecting bias neuron to output
-     * @param defaultActivationType The default activation type used for new nodes
-     * @param count The number of Genomes to generate (population size)
-     */
-    public Population(int numInput, int numOutput, double connectionProbability, boolean includeBias,
-                      double biasConnectionProbability, ActivationType defaultActivationType,
-                      double weightRangeMin, double weightRangeMax, int count) {
+    // The pruning threshold after which search enters the complexifying phase
+    private double pruneThreshold;
+    // Indicates whether search is in a simplifying phase, if not, it's in a complexifying phase
+    private boolean simplifyingPhase = false;
+    // The last population age at which a complexifying to simplifying phase occurred
+    private int lastTransitionAge;
+    // Summary statistics for population complexity across the generations
+    private final DoubleSummaryStatistics complexityStats = new DoubleSummaryStatistics();
 
-        // Initiate the innovations store. Sets the nodes' ids, and ids trackers
-        innovationDB = new InnovationDB(numInput, numOutput, includeBias, defaultActivationType,
-                weightRangeMin, weightRangeMax);
-
-        // Generate Genomes
-        while (population.size() < count)
-            population.add(new Genome(innovationDB, connectionProbability, biasConnectionProbability));
-
-        // Temporary value
-        bestGenome = population.get(0);
-    }
 
     /**
      * Constructs a population using the configurations from a NEATConfig instance
@@ -83,9 +63,24 @@ public class Population implements Serializable {
      * @param config The NEAT configuration instance containing all parameters
      */
     public Population(NEATConfig config) {
-        this(config.numInput(), config.numOutput(), config.connectionProbability(), config.includeBias(),
-                config.biasConnectionProbability(), config.defaultActivationType(), config.weightRangeMin(),
-                config.weightRangeMax(), config.populationSize());
+
+        // Initiate the innovation database. Sets the nodes' ids, and ids trackers
+        innovationDB = new InnovationDB(config.numInput(), config.numOutput(), config.includeBias(),
+                config.defaultActivationType(), config.weightRangeMin(), config.weightRangeMax());
+
+        // Generate initial Genomes
+        while (population.size() < config.populationSize())
+            population.add(new Genome(innovationDB, config.connectionProbability(), config.biasConnectionProbability()));
+
+        // Temporary value
+        bestGenome = population.get(0);
+
+        // In case of a phased search compute the prune threshold and add current population complexity value to the
+        // summary statistics instance
+        if (config.phasedSearch()) {
+            pruneThreshold = meanComplexity() + config.meanComplexityThreshold();
+            complexityStats.accept(meanComplexity());
+        }
     }
 
     /**
@@ -110,10 +105,68 @@ public class Population implements Serializable {
         computeSpawnAmounts(); // System.out.println("Spawn compute done!");
         // 6. Check for the staleness of the population, keep only the best species if population is stale
         processPopulationStaleness(config); //System.out.println("Population staleness done!");
-        // 7. Generate a new generation of offsprings through mating and mutation within the species
+        // 7. In case of a phased search determine the phase and select the appropriate parameters
+        if (config.phasedSearch()) selectPhase(config);
+        // 8. Generate a new generation of offsprings through mating and mutation within the species
         reproduce(config, evolutionStats); //System.out.println("Reproduce done!");
         // increment population age
         age++;
+    }
+
+    /**
+     * This method is responsible for switching between simplifying and complexifying phases, depending on the
+     * satisfaction of the conditions of entering to either phase. This will be called only if phased search is enabled.
+     * On the complexifying phase, the algorithm will follow the usual NEAT process by searching through
+     * complexification using additive mutation operators. In the simplifying phase, the algorithm will follow the same
+     * evolution process but will disable additive mutation operators and mating (crossover), and will enable
+     * subtractive mutation operators.
+     *
+     * The algorithm will always start in the complexifying phase, and will transition to the simplifying phase when the
+     * mean complexity of the population surpasses a given prune threshold while the population is in a stale state.
+     * The algorithm will transition back to the complexifying phase after at least running for a minimum of generations
+     * in simplifying phase, and the mean complexity of the population dips bellow the threshold, while the population's
+     * complexity stagnates between two successive generations.
+     *
+     * @param config The configuration instance containing all parameters
+     */
+    private void selectPhase(NEATConfig config) {
+
+        // Get the mean complexity of the population and compute the average of previous complexity values
+        double meanComplexity = meanComplexity();
+        double previousMeanComplexityAvg = complexityStats.getAverage();
+
+        // Add current mean complexity to the summary statistics object after the first generation
+        if (age >= 1) complexityStats.accept(meanComplexity);
+
+        // In case we're at the complexifying phase
+        if (!simplifyingPhase) {
+            // Check for the conditions of entering the simplifying phase
+            if (meanComplexity > pruneThreshold && staleness > config.minStaleComplexifyGenerations()) {
+                // Enter simplifying phase
+                simplifyingPhase = true;
+                // Record the age in which the transition happens
+                lastTransitionAge = age;
+                // Switch to simplifying parameters
+                config.switchToSimplifying();
+                // System.out.println(age + " Switching --> Simplifying " + meanComplexity + " > " + pruneThreshold);
+            }
+        }
+        // We're at the simplifying phase
+        else {
+            // Check if it's possible to transition to the complexifying phase
+            if (((age - lastTransitionAge) >= config.minSimplifyGenerations()) && (meanComplexity < pruneThreshold)
+                    && (complexityStats.getAverage() >= previousMeanComplexityAvg)) {
+                // System.out.println(age + " Switching --> Complexifying " + meanComplexity + " < " + pruneThreshold);
+                // Switch to complexifying phase
+                simplifyingPhase = false;
+                // Switch to complexifying parameters
+                config.switchToComplexifying();
+                // If we don't use an absolute threshold (instead, a relative threshold), update the prune threshold
+                // using the current mean complexity
+                if (!config.absoluteThreshold())
+                    pruneThreshold = meanComplexity + config.meanComplexityThreshold();
+            }
+        }
     }
 
     /**
@@ -478,10 +531,6 @@ public class Population implements Serializable {
     public List<Genome> getPopulationMembers() {
         return population;
     }
-
-    // public EvolutionStats getEvolutionStats() {
-    //     return evolutionStats;
-    // }
 
     public List<Species> getSpecies() {
         return allSpecies;

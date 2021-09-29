@@ -2,14 +2,11 @@ package engine;
 
 import activations.ActivationType;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.Properties;
 
 /**
- * A wrapper for the NEAT configuration parameters file
+ * A NEAT configuration parameters file reader
  * @author Acemad
  */
 public class NEATConfig {
@@ -68,10 +65,32 @@ public class NEATConfig {
     private double mutateActivationRate;
 
     private boolean fixDanglingNodes;
+    private boolean fixDanglingNodesStrict;
     private double danglingRemoveProbability;
 
     private String allowedActivations;
 
+    private boolean phasedSearch;
+    private double meanComplexityThreshold;
+    private boolean absoluteThreshold;
+    private int minSimplifyGenerations;
+    private int minStaleComplexifyGenerations;
+    private double mutateDeleteLinkProbability;
+    private double mutateDeleteLinkProbabilitySimplify;
+    private double mutateWeightProbabilitySimplify;
+    private double mutateActivationProbabilitySimplify;
+
+    private double backupMutateAddLinkProbability;
+    private double backupMutateAddNodeProbability;
+    private double backupMutateOnlyProbability;
+    private double backupMutateDeleteLinkProbability;
+    private double backupMutateWeightProbability;
+    private double backupMutateActivationProbability;
+
+    /**
+     *
+     * @param configFile
+     */
     public NEATConfig(String configFile) {
 
         loadConfigurations(configFile);
@@ -129,10 +148,58 @@ public class NEATConfig {
         mutateActivationRate = Double.parseDouble(configs.getProperty("mutateActivationRate"));
 
         fixDanglingNodes = Boolean.parseBoolean(configs.getProperty("fixDanglingNodes"));
+        fixDanglingNodesStrict = Boolean.parseBoolean(configs.getProperty("fixDanglingNodesStrict"));
         danglingRemoveProbability = Double.parseDouble(configs.getProperty("danglingRemoveProbability"));
         allowedActivations = configs.getProperty("allowedActivations");
+
+        phasedSearch = Boolean.parseBoolean(configs.getProperty("phasedSearch"));
+        meanComplexityThreshold = Double.parseDouble(configs.getProperty("meanComplexityThreshold"));
+        minSimplifyGenerations = Integer.parseInt(configs.getProperty("minSimplifyGenerations"));
+        absoluteThreshold = Boolean.parseBoolean(configs.getProperty("absoluteThreshold"));
+        minStaleComplexifyGenerations = Integer.parseInt(configs.getProperty("minStaleComplexifyGenerations"));
+        mutateDeleteLinkProbability = Double.parseDouble(configs.getProperty("mutateDeleteLinkProbability"));
+        mutateDeleteLinkProbabilitySimplify = Double.parseDouble(configs.getProperty("mutateDeleteLinkProbabilitySimplify"));
+        mutateWeightProbabilitySimplify = Double.parseDouble(configs.getProperty("mutateWeightProbabilitySimplify"));
+        mutateActivationProbabilitySimplify = Double.parseDouble(configs.getProperty("mutateActivationProbabilitySimplify"));
+
+        // Backup for phased search
+        backupMutateAddLinkProbability = mutateAddLinkProbability;
+        backupMutateAddNodeProbability = mutateAddNodeProbability;
+        backupMutateOnlyProbability = mutateOnlyProbability;
+        backupMutateDeleteLinkProbability = mutateDeleteLinkProbability;
+        backupMutateWeightProbability = mutateWeightProbability;
+        backupMutateActivationProbability = mutateActivationProbability;
+
     }
 
+    /**
+     *
+     */
+    public void switchToSimplifying() {
+        mutateAddLinkProbability = 0;
+        mutateAddNodeProbability = 0;
+        mutateOnlyProbability = 1;
+        mutateDeleteLinkProbability = mutateDeleteLinkProbabilitySimplify;
+        mutateWeightProbability = mutateWeightProbabilitySimplify;
+        mutateActivationProbability = mutateActivationProbabilitySimplify;
+    }
+
+    /**
+     *
+     */
+    public void switchToComplexifying() {
+        mutateAddLinkProbability = backupMutateAddLinkProbability;
+        mutateAddNodeProbability = backupMutateAddNodeProbability;
+        mutateOnlyProbability = backupMutateOnlyProbability;
+        mutateDeleteLinkProbability = backupMutateDeleteLinkProbability;
+        mutateWeightProbability = backupMutateWeightProbability;
+        mutateActivationProbability = backupMutateActivationProbability;
+    }
+
+    /**
+     *
+     * @param configFile
+     */
     private void loadConfigurations(String configFile) {
 
         // Get the root path
@@ -146,11 +213,6 @@ public class NEATConfig {
             System.err.println("Problem loading configuration file");
             exception.printStackTrace();
         }
-    }
-
-    @Override
-    public String toString() {
-        return "NEATConfig{\n" + configs + '}';
     }
 
     public int numInput() {
@@ -336,4 +398,92 @@ public class NEATConfig {
     public boolean capWeights() {
         return capWeights;
     }
+
+    public boolean fixDanglingNodesStrict() {
+        return fixDanglingNodesStrict;
+    }
+
+    public boolean phasedSearch() {
+        return phasedSearch;
+    }
+
+    public double mutateDeleteLinkProbability() {
+        return mutateDeleteLinkProbability;
+    }
+
+    public double meanComplexityThreshold() {
+        return meanComplexityThreshold;
+    }
+
+    public double minSimplifyGenerations() {
+        return minSimplifyGenerations;
+    }
+
+    public int minStaleComplexifyGenerations() {
+        return minStaleComplexifyGenerations;
+    }
+
+    public boolean absoluteThreshold() {
+        return absoluteThreshold;
+    }
+
+    @Override
+    public String toString() {
+        return "NEATConfig{" +
+                "numInput=" + numInput +
+                ", numOutput=" + numOutput +
+                ", connectionProbability=" + connectionProbability +
+                ", includeBias=" + includeBias +
+                ", biasConnectionProbability=" + biasConnectionProbability +
+                ", populationSize=" + populationSize +
+                ", defaultActivationType=" + defaultActivationType +
+                ", weightRangeMin=" + weightRangeMin +
+                ", weightRangeMax=" + weightRangeMax +
+                ", linkTypeFiltering=" + linkTypeFiltering +
+                ", linksBetweenHiddenNodesRate=" + linksBetweenHiddenNodesRate +
+                ", hiddenLoopLinksRate=" + hiddenLoopLinksRate +
+                ", outputLoopLinksRate=" + outputLoopLinksRate +
+                ", outputToHiddenLinksRate=" + outputToHiddenLinksRate +
+                ", outputToOutputLinksRate=" + outputToOutputLinksRate +
+                ", hiddenToHiddenBackwardLinksRate=" + hiddenToHiddenBackwardLinksRate +
+                ", hiddenToHiddenSameLevelLinksRate=" + hiddenToHiddenSameLevelLinksRate +
+                ", unmatchedCoeff=" + unmatchedCoeff +
+                ", weightDiffCoeff=" + weightDiffCoeff +
+                ", activationDiffCoeff=" + activationDiffCoeff +
+                ", compatibilityThreshold=" + compatibilityThreshold +
+                ", aimForSpeciesNumber=" + aimForSpeciesNumber +
+                ", speciesNumberTarget=" + speciesNumberTarget +
+                ", maxSpeciesStaleness=" + maxSpeciesStaleness +
+                ", maxPopulationStaleness=" + maxPopulationStaleness +
+                ", parentsSurvivalThreshold=" + parentsSurvivalThreshold +
+                ", elitismInSpecies=" + elitismInSpecies +
+                ", mutateOnlyProbability=" + mutateOnlyProbability +
+                ", mateOnlyProbability=" + mateOnlyProbability +
+                ", mateAveragingProbability=" + mateAveragingProbability +
+                ", mateKeepGeneDisabledProbability=" + mateKeepGeneDisabledProbability +
+                ", mutateAddNodeProbability=" + mutateAddNodeProbability +
+                ", mutateAddNodeOldLinksPriority=" + mutateAddNodeOldLinksPriority +
+                ", mutateAddLinkProbability=" + mutateAddLinkProbability +
+                ", mutateWeightProbability=" + mutateWeightProbability +
+                ", capWeights=" + capWeights +
+                ", mutateToggleEnableProbability=" + mutateToggleEnableProbability +
+                ", mutateReEnableProbability=" + mutateReEnableProbability +
+                ", mutateActivationProbability=" + mutateActivationProbability +
+                ", weightPerturbationStrength=" + weightPerturbationStrength +
+                ", mutateActivationRate=" + mutateActivationRate +
+                ", fixDanglingNodes=" + fixDanglingNodes +
+                ", fixDanglingNodesStrict=" + fixDanglingNodesStrict +
+                ", danglingRemoveProbability=" + danglingRemoveProbability +
+                ", allowedActivations='" + allowedActivations + '\'' +
+                ", phasedSearch=" + phasedSearch +
+                ", mutateDeleteLinkProbability=" + mutateDeleteLinkProbability +
+                ", mutateDeleteLinkProbabilitySimplify=" + mutateDeleteLinkProbabilitySimplify +
+                ", mutateWeightProbabilitySimplify=" + mutateWeightProbabilitySimplify +
+                '}';
+    }
+
+
+
+
+
 }

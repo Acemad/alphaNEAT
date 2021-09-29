@@ -261,21 +261,28 @@ public class Mutation {
     }
 
     // TODO WIP : Deletion mutation for phased evolution
-    /*public static Genome deleteNode(Genome genome) {
 
-        Genome mutatedGenome = new Genome(genome);
+    public static Genome deleteLink(Genome genome, InnovationDB innovationDB) {
 
-        if (mutatedGenome.getHiddenNodeGenes().size() > 0) {
-            NodeGene nodeToDelete = mutatedGenome.getHiddenNodeGenes().get(
-                    NRandom.getRandomInt(mutatedGenome.getHiddenNodeGenes().size()));
-        }
+        Genome mutatedGenome = new Genome(genome, innovationDB);
 
-        for (NodeGene hiddenNodeGene : mutatedGenome.getHiddenNodeGenes()) {
+        if (mutatedGenome.getLinkGenes().size() < 2)
+            return mutatedGenome;
 
-        }
+        LinkGene deletedLink = mutatedGenome.getLinkGenes().remove(PRNG.nextInt(mutatedGenome.getLinkGenes().size()));
+
+        // NodeGene source = mutatedGenome.getNodeGeneById(deletedLink.getSourceNodeId());
+        // NodeGene destination = mutatedGenome.getNodeGeneById(deletedLink.getDestinationNodeId());
+
+        int danglingNodesFound;
+        do {
+            danglingNodesFound = mutatedGenome.fixDanglingNodes(innovationDB, 1.0);
+        } while (danglingNodesFound > 0);
+
+        //mutatedGenome.fixDanglingNodes(innovationDB, 1.0);
 
         return mutatedGenome;
-    }*/
+    }
 
     // TODO: Re-orient mutation, change the destination of a link from one node to another
 }

@@ -176,8 +176,14 @@ public class Species implements Comparable<Species>, Serializable {
             }
 
             // offspring.checkGenomeConsistency(innovationDB);
-            if (config.fixDanglingNodes())
-                offspring.fixDanglingNodes(innovationDB, config.danglingRemoveProbability());
+            if (config.fixDanglingNodes()) {
+                int danglingNodesFound;
+                do {
+                    danglingNodesFound = offspring.fixDanglingNodes(innovationDB, config.danglingRemoveProbability());
+                    if (!config.fixDanglingNodesStrict()) break;
+                } while (danglingNodesFound > 0);
+            }
+
 
             // Add the new offspring to the new offsprings list
             offsprings.add(offspring);
@@ -222,6 +228,13 @@ public class Species implements Comparable<Species>, Serializable {
             structuralMutation = true;
 
             /*Stats*/ reproductionStats.addLinkMutations().plusOne();
+        }
+
+        if (PRNG.nextDouble() < config.mutateDeleteLinkProbability()) {
+            mutatedGenome = Mutation.deleteLink(mutatedGenome, innovationDB);
+            structuralMutation = true;
+
+            /*Stats*/ reproductionStats.deleteLinkMutations().plusOne();
         }
 
         // If no structural mutation succeeded, proceed with the other mutations

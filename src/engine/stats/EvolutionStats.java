@@ -70,6 +70,7 @@ public class EvolutionStats implements Serializable {
     private final DescriptiveStatistics toggleEnableMutationsStats = new DescriptiveStatistics();
     private final DescriptiveStatistics reEnableMutationsStats = new DescriptiveStatistics();
     private final DescriptiveStatistics activationMutationsStats = new DescriptiveStatistics();
+    private final DescriptiveStatistics deleteLinkMutationsStats = new DescriptiveStatistics();
 
     private final DescriptiveStatistics meanComplexityStats = new DescriptiveStatistics();
 
@@ -218,6 +219,7 @@ public class EvolutionStats implements Serializable {
         toggleEnableMutationsStats.addValue(reproductionStats.toggleEnableMutations().get());
         reEnableMutationsStats.addValue(reproductionStats.reEnableMutations().get());
         activationMutationsStats.addValue(reproductionStats.activationMutations().get());
+        deleteLinkMutationsStats.addValue(reproductionStats.deleteLinkMutations().get());
     }
 
     /**

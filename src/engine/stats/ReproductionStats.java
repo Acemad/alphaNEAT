@@ -20,6 +20,8 @@ public class ReproductionStats {
     private final Counter reEnableMutations = new Counter();
     private final Counter activationMutations = new Counter();
 
+    private final Counter deleteLinkMutations = new Counter();
+
     public Counter mutationOnlyReproductions() {
         return mutationOnlyReproductions;
     }
@@ -66,5 +68,9 @@ public class ReproductionStats {
 
     public Counter activationMutations() {
         return activationMutations;
+    }
+
+    public Counter deleteLinkMutations() {
+        return deleteLinkMutations;
     }
 }
