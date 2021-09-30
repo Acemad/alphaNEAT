@@ -9,6 +9,7 @@ import operators.Mutation;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 
 /**
@@ -37,6 +38,19 @@ public class Species implements Comparable<Species>, Serializable {
 
     // How many offspring this species should spawn
     private int spawnAmount;
+
+    // Species age
+    private int age = 0;
+
+    // Species phased search *****
+    // The pruning threshold after which we switch to the simplifying phase
+    private double pruneThreshold;
+    // Flag indicating whether we're currently in the simplifying phase or not
+    private boolean simplifyingPhase = false;
+    // The age of the species at which the last transition to simplifying phase happened
+    private int lastTransitionAge;
+    // Summary statistics for the mean complexity of the species
+    private final DoubleSummaryStatistics complexityStats = new DoubleSummaryStatistics();
 
     /**
      * Creates a new Species using a given Genome, which becomes the leader of the new species
@@ -125,6 +139,13 @@ public class Species implements Comparable<Species>, Serializable {
     public List<Genome> spawnOffsprings(InnovationDB innovationDB, NEATConfig config,
                                         ReproductionStats reproductionStats) {
 
+        // Phase switching immediately before reproduction. Each species will select the appropriate mode using the
+        // flag set by the phase selection method
+        if (config.speciesPhasedSearch() && !config.globalPhasedSearch()) {
+            if (simplifyingPhase) config.switchToSimplifying();
+            else config.switchToComplexifying();
+        }
+
         // The list of new offspring to generate
         List<Genome> offsprings = new ArrayList<>();
 
@@ -184,12 +205,14 @@ public class Species implements Comparable<Species>, Serializable {
                 } while (danglingNodesFound > 0);
             }
 
-
             // Add the new offspring to the new offsprings list
             offsprings.add(offspring);
 
             /*Stats*/ reproductionStats.totalReproductions().plusOne();
         }
+
+        // Increment species age
+        age++;
 
         return offsprings;
     }
@@ -203,8 +226,8 @@ public class Species implements Comparable<Species>, Serializable {
      * @param reproductionStats For keeping the statistics related to the frequencies of operators application
      * @return A mutated Genome
      */
-    private static Genome mutate(Genome genome, InnovationDB innovationDB, NEATConfig config,
-                                 ReproductionStats reproductionStats) {
+    private Genome mutate(Genome genome, InnovationDB innovationDB, NEATConfig config,
+                          ReproductionStats reproductionStats) {
 
         // System.out.println("\t\t\t selected:" + genome.toConciseString());
         // Copy the reference of the input Genome
@@ -286,6 +309,52 @@ public class Species implements Comparable<Species>, Serializable {
 
             // The survivors replace the members
             members = survivors;
+        }
+    }
+
+    /**
+     * Species phase selection method. This is responsible for selecting the appropriate phase (complexification or
+     * simplification) species wise. In a complexification phase the species will reproduce using additive mutations
+     * and in the simplification phase the species will reproduce using subtractive mutations.
+     * This method is identical to the globalPhaseSelection method of the population class except for the way switching
+     * happens. In this method a simple flag is used to switch phases, and the flag is used by the reproduction method
+     * to determine phase before reproduction. This is to avoid one species changing the phase of other species.
+     * (TODO Find a better way)
+     *
+     * @param config The configuration instance containing all parameters.
+     */
+    public void selectPhase(NEATConfig config) {
+
+        double meanComplexity = meanComplexity();
+
+        if (age == 0) {
+            complexityStats.accept(meanComplexity);
+            pruneThreshold = meanComplexity + config.meanComplexityThreshold();
+        }
+
+        double previousMeanComplexityAvg = complexityStats.getAverage();
+
+        if (age >= 1) complexityStats.accept(meanComplexity);
+
+        if (!simplifyingPhase) {
+            if ((meanComplexity > pruneThreshold) && (staleness > config.minStaleComplexifyGenerations())) {
+                simplifyingPhase = true;
+                lastTransitionAge = age;
+                // System.out.println(age + " Switching --> Simplifying " + meanComplexity + " > " + pruneThreshold
+                //         + " , S:" + id);
+            }
+        }
+
+        else {
+            if (((age - lastTransitionAge) >= config.minSimplifyGenerations()) && (meanComplexity < pruneThreshold)
+                    && (complexityStats.getAverage() >= previousMeanComplexityAvg)) {
+                // System.out.println(age + " Switching --> Complexifying " + meanComplexity + " < " + pruneThreshold
+                //         + " , S:" + id);
+
+                simplifyingPhase = false;
+                if (config.relativeThreshold())
+                    pruneThreshold = meanComplexity + config.meanComplexityThreshold();
+            }
         }
     }
 
@@ -376,4 +445,9 @@ public class Species implements Comparable<Species>, Serializable {
     public int getId() {
         return id;
     }
+
+    public int getAge() {
+        return age;
+    }
+
 }

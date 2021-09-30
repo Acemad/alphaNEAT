@@ -70,9 +70,10 @@ public class NEATConfig {
 
     private String allowedActivations;
 
-    private boolean phasedSearch;
+    private boolean globalPhasedSearch;
+    private boolean speciesPhasedSearch;
     private double meanComplexityThreshold;
-    private boolean absoluteThreshold;
+    private boolean relativeThreshold;
     private int minSimplifyGenerations;
     private int minStaleComplexifyGenerations;
     private double mutateDeleteLinkProbability;
@@ -152,10 +153,11 @@ public class NEATConfig {
         danglingRemoveProbability = Double.parseDouble(configs.getProperty("danglingRemoveProbability"));
         allowedActivations = configs.getProperty("allowedActivations");
 
-        phasedSearch = Boolean.parseBoolean(configs.getProperty("phasedSearch"));
+        globalPhasedSearch = Boolean.parseBoolean(configs.getProperty("globalPhasedSearch"));
+        speciesPhasedSearch = Boolean.parseBoolean(configs.getProperty("speciesPhasedSearch"));
         meanComplexityThreshold = Double.parseDouble(configs.getProperty("meanComplexityThreshold"));
         minSimplifyGenerations = Integer.parseInt(configs.getProperty("minSimplifyGenerations"));
-        absoluteThreshold = Boolean.parseBoolean(configs.getProperty("absoluteThreshold"));
+        relativeThreshold = Boolean.parseBoolean(configs.getProperty("relativeThreshold"));
         minStaleComplexifyGenerations = Integer.parseInt(configs.getProperty("minStaleComplexifyGenerations"));
         mutateDeleteLinkProbability = Double.parseDouble(configs.getProperty("mutateDeleteLinkProbability"));
         mutateDeleteLinkProbabilitySimplify = Double.parseDouble(configs.getProperty("mutateDeleteLinkProbabilitySimplify"));
@@ -403,8 +405,8 @@ public class NEATConfig {
         return fixDanglingNodesStrict;
     }
 
-    public boolean phasedSearch() {
-        return phasedSearch;
+    public boolean globalPhasedSearch() {
+        return globalPhasedSearch;
     }
 
     public double mutateDeleteLinkProbability() {
@@ -423,8 +425,12 @@ public class NEATConfig {
         return minStaleComplexifyGenerations;
     }
 
-    public boolean absoluteThreshold() {
-        return absoluteThreshold;
+    public boolean relativeThreshold() {
+        return relativeThreshold;
+    }
+
+    public boolean speciesPhasedSearch() {
+        return speciesPhasedSearch;
     }
 
     @Override
@@ -475,15 +481,12 @@ public class NEATConfig {
                 ", fixDanglingNodesStrict=" + fixDanglingNodesStrict +
                 ", danglingRemoveProbability=" + danglingRemoveProbability +
                 ", allowedActivations='" + allowedActivations + '\'' +
-                ", phasedSearch=" + phasedSearch +
+                ", phasedSearch=" + globalPhasedSearch +
                 ", mutateDeleteLinkProbability=" + mutateDeleteLinkProbability +
                 ", mutateDeleteLinkProbabilitySimplify=" + mutateDeleteLinkProbabilitySimplify +
                 ", mutateWeightProbabilitySimplify=" + mutateWeightProbabilitySimplify +
                 '}';
     }
-
-
-
 
 
 }
