@@ -196,7 +196,6 @@ public class Species implements Comparable<Species>, Serializable {
                     /*Stats*/ reproductionStats.matingOnlyReproductions().plusOne();
             }
 
-            // offspring.checkGenomeConsistency(innovationDB);
             if (config.fixDanglingNodes()) {
                 int danglingNodesFound;
                 do {
@@ -204,6 +203,8 @@ public class Species implements Comparable<Species>, Serializable {
                     if (!config.fixDanglingNodesStrict()) break;
                 } while (danglingNodesFound > 0);
             }
+            // offspring.checkGenomeConsistency(innovationDB);
+
 
             // Add the new offspring to the new offsprings list
             offsprings.add(offspring);
@@ -260,6 +261,22 @@ public class Species implements Comparable<Species>, Serializable {
             /*Stats*/ reproductionStats.deleteLinkMutations().plusOne();
         }
 
+        if (PRNG.nextDouble() < config.mutateDeleteNodeProbability()) {
+            mutatedGenome = Mutation.deleteNode(mutatedGenome, innovationDB);
+            structuralMutation = true;
+
+            /*Stats*/ reproductionStats.deleteNodeMutations().plusOne();
+        }
+
+        if (PRNG.nextDouble() < config.mutateReOrientLinkProbability()) {
+            mutatedGenome = Mutation.reOrientLink(mutatedGenome, innovationDB, config);
+            structuralMutation = true;
+
+            /*Stats*/ reproductionStats.reOrientLinkMutations().plusOne();
+        }
+
+
+
         // If no structural mutation succeeded, proceed with the other mutations
         if (!structuralMutation) {
             // Weight mutation
@@ -279,8 +296,8 @@ public class Species implements Comparable<Species>, Serializable {
             }
             // Activation mutation
             if (PRNG.nextDouble() < config.mutateActivationProbability()) {
-                mutatedGenome = Mutation.mutateActivationType(mutatedGenome, innovationDB, config.mutateActivationRate(),
-                        config.allowedActivations());
+                mutatedGenome = Mutation.mutateActivationType(mutatedGenome, innovationDB,
+                        config.mutateActivationProportion(), config.allowedActivations());
                 /*Stats*/ reproductionStats.activationMutations().plusOne();
             }
         }
@@ -450,4 +467,7 @@ public class Species implements Comparable<Species>, Serializable {
         return age;
     }
 
+    public boolean isSimplifyingPhase() {
+        return simplifyingPhase;
+    }
 }

@@ -85,7 +85,7 @@ public class Population implements Serializable {
     public void evolve(EvaluationFunction evaluationFunction, NEATConfig config, EvolutionStats evolutionStats) {
 
         // 1. Using the given evaluation function, evaluate the fitness of individuals in the population
-        evaluatePopulation(evaluationFunction); // System.out.println("Eval done!");
+        evaluatePopulation(evaluationFunction, config.evaluationThreads()); // System.out.println("Eval done!");
         // 2. Divide Genomes into species, then clean up the species
         speciate(config); // System.out.println("Speciation done!");
         // Update evolution statistics
@@ -111,10 +111,11 @@ public class Population implements Serializable {
      * Evaluate all the members of the population using the given evaluation function
      *
      * @param evaluationFunction The evaluation function used for evaluating the fitness of the Genomes
+     * @param threads The number of threads to use for fitness evaluation
      */
-    public void evaluatePopulation(EvaluationFunction evaluationFunction) {
+    public void evaluatePopulation(EvaluationFunction evaluationFunction, int threads) {
         // Evaluate the population
-        evaluationFunction.evaluateAll(population);
+        evaluationFunction.evaluateAll(population, threads);
         // Sort the population in descending order by their fitness
         population.sort(Collections.reverseOrder());
         // Designate the best genome
@@ -548,6 +549,10 @@ public class Population implements Serializable {
 
     public List<Species> getSpecies() {
         return allSpecies;
+    }
+
+    public boolean isSimplifyingPhase() {
+        return simplifyingPhase;
     }
 }
 

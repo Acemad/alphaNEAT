@@ -41,6 +41,6 @@ public class Link implements Serializable {
 
     @Override
     public String toString() {
-        return "Pair{" + "a=" + source + ", b=" + destination + '}';
+        return "Link{" + "s=" + source + ", d=" + destination + '}';
     }
 }

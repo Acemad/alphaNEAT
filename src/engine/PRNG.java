@@ -1,6 +1,10 @@
 package engine;
 
 import org.apache.commons.rng.UniformRandomProvider;
+import org.apache.commons.rng.sampling.distribution.ContinuousSampler;
+import org.apache.commons.rng.sampling.distribution.GaussianSampler;
+import org.apache.commons.rng.sampling.distribution.MarsagliaNormalizedGaussianSampler;
+import org.apache.commons.rng.sampling.distribution.ZigguratNormalizedGaussianSampler;
 import org.apache.commons.rng.simple.RandomSource;
 
 /**
@@ -33,10 +37,16 @@ public class PRNG {
      */
     public static double nextDouble() {
         return random.nextDouble();
-        /*double gaussian = random.nextGaussian();
-        if (gaussian >= 1 || gaussian < 0)
-            return random.nextDouble();
-        return gaussian;*/
+    }
+
+    /**
+     * Generates a random double from the gaussian distribution defined by mean=0 and the given sigma
+     * @param sigma Standard deviation of the gaussian distribution
+     * @return A random double sampled from the normal distribution
+     */
+    public static double nextGaussian(double sigma) {
+        ContinuousSampler sampler = GaussianSampler.of(ZigguratNormalizedGaussianSampler.of(random), 0, sigma);
+        return sampler.sample();
     }
 
     /**

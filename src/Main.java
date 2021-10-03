@@ -4,6 +4,7 @@ import encoding.NodeType;
 import encoding.phenotype.NeuralNetwork;
 import engine.ANEAT;
 import engine.NEATConfig;
+import engine.PRNG;
 import engine.Population;
 import encoding.Genome;
 import innovation.InnovationDB;
@@ -159,6 +160,12 @@ public class Main {
         // Genome g3 = Crossover.multipointCrossover(g1, g2, new NEATConfig("configs"));
         // System.out.println("\ng3: " + g3.toConciseString());
 
+        String parentDir = System.getProperty("user.home") + "\\Desktop\\xor\\";
+        String configPath = parentDir + "configs.cfg";
+        String baseName = parentDir + "xor";
+
+
+
         InnovationDB innovations = new InnovationDB(2,1,true, ActivationType.SIGMOID_STEEP, -1, 1);
 
 
@@ -185,17 +192,16 @@ public class Main {
         System.out.println("After: \n" + mutated.toConciseString());
 
 
+        /*for (int i = 0; i < 100; i++) {
+            System.out.println(PRNG.nextGaussian(0.01));
+        }*/
 
 
-
-        String parentDir = System.getProperty("user.home") + "\\Desktop\\xor\\";
-        String configPath = parentDir + "configs.cfg";
-        String baseName = parentDir + "xor";
 
         DescriptiveStatistics stats = new DescriptiveStatistics();
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 200; i++) {
             ANEAT aneat = new ANEAT(configPath /*,baseName + "Pop-6000"*/);
-            aneat.run(Main::evalXOR, 1000, null);
+            aneat.run(Main::evalXOR, 500, null);
             // System.out.println("Pop:\n" + aneat.getPopulation().toConciseString());
             System.out.println("BestGenome:\n\t " + aneat.getBestGenome().toConciseString());
             /*System.out.println("SPex\n" +

@@ -29,18 +29,20 @@ public interface EvaluationFunction {
      * @param genomes The List of Genome to evaluate
      * @return true if the process
      */
-    default boolean evaluateAll(List<Genome> genomes) {
+    default boolean evaluateAll(List<Genome> genomes, int threads) {
 
-        // Get the number of processors available
-        int cores = Runtime.getRuntime().availableProcessors();
-
+        // Set the number of threads to use for evaluation.
+        int threadsToUse;
+        // In case threads is 0 use all the number of available cores
+        if (threads == 0) threadsToUse = Runtime.getRuntime().availableProcessors();
+        else threadsToUse = threads;
         // For each Genome in the list of genomes, create a Runnable task for evaluation and add to the list of tasks
         List<Runnable> tasks = new ArrayList<>();
         for (Genome genome : genomes)
             tasks.add(() -> genome.setFitness(evaluate(genome))); // Directly set the fitness of the Genome
 
         // Create a fixed thread pool and execute the tasks.
-        ExecutorService executorService = Executors.newFixedThreadPool(cores);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadsToUse);
         tasks.forEach(executorService::execute);
         // Initiate a proper shutdown, executing all previously submitted tasks and preventing submission of new tasks
         executorService.shutdown();

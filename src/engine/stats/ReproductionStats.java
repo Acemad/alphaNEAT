@@ -21,6 +21,8 @@ public class ReproductionStats {
     private final Counter activationMutations = new Counter();
 
     private final Counter deleteLinkMutations = new Counter();
+    private final Counter deleteNodeMutations = new Counter();
+    private final Counter reOrientLinkMutations = new Counter();
 
     public Counter mutationOnlyReproductions() {
         return mutationOnlyReproductions;
@@ -72,5 +74,13 @@ public class ReproductionStats {
 
     public Counter deleteLinkMutations() {
         return deleteLinkMutations;
+    }
+
+    public Counter deleteNodeMutations() {
+        return deleteNodeMutations;
+    }
+
+    public Counter reOrientLinkMutations() {
+        return reOrientLinkMutations;
     }
 }

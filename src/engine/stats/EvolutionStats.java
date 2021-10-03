@@ -50,6 +50,8 @@ public class EvolutionStats implements Serializable {
     private final Map<Integer, List<DescriptiveStatistics>> speciesLinksStats = new HashMap<>();
     // Species stats: species mean complexity stats
     private final Map<Integer, DescriptiveStatistics> speciesMeanComplexityStats = new HashMap<>();
+    // Species stats: search phase of each species in each generation
+    private final Map<Integer, List<Boolean>> speciesSearchPhases = new HashMap<>();
     // Species stats: for each species, keep a list of the population ages this species existed in
     private final Map<Integer, List<Integer>> speciesExistenceStats = new HashMap<>();
 
@@ -71,8 +73,13 @@ public class EvolutionStats implements Serializable {
     private final DescriptiveStatistics reEnableMutationsStats = new DescriptiveStatistics();
     private final DescriptiveStatistics activationMutationsStats = new DescriptiveStatistics();
     private final DescriptiveStatistics deleteLinkMutationsStats = new DescriptiveStatistics();
+    private final DescriptiveStatistics deleteNodeMutationsStats = new DescriptiveStatistics();
+    private final DescriptiveStatistics reOrientLinkMutationsStats = new DescriptiveStatistics();
 
+    // Mean complexity of each generation
     private final DescriptiveStatistics meanComplexityStats = new DescriptiveStatistics();
+    // Current search phase in each generation (simplifying or complexifying) in phased search
+    private final List<Boolean> searchPhases = new ArrayList<>();
 
     /**
      * This method is called after the speciation step of each generation with the actual state of the population. It
@@ -89,6 +96,7 @@ public class EvolutionStats implements Serializable {
         updateSpeciesStats(population);
 
         meanComplexityStats.addValue(population.meanComplexity());
+        searchPhases.add(population.isSimplifyingPhase());
     }
 
     /**
@@ -183,6 +191,8 @@ public class EvolutionStats implements Serializable {
                 speciesMeanComplexity.addValue(species.meanComplexity());
                 speciesMeanComplexityStats.put(species.getId(), speciesMeanComplexity);
 
+                speciesSearchPhases.put(species.getId(), new ArrayList<>(List.of(species.isSimplifyingPhase())));
+
             } else {
                 // Previously visited species, retrieve the stats lists and add new data
                 speciesFitnessStats.get(species.getId()).add(fitnessStats);
@@ -191,6 +201,8 @@ public class EvolutionStats implements Serializable {
                 speciesExistenceStats.get(species.getId()).add(population.getAge());
 
                 speciesMeanComplexityStats.get(species.getId()).addValue(species.meanComplexity());
+
+                speciesSearchPhases.get(species.getId()).add(species.isSimplifyingPhase());
             }
         }
 
@@ -220,6 +232,8 @@ public class EvolutionStats implements Serializable {
         reEnableMutationsStats.addValue(reproductionStats.reEnableMutations().get());
         activationMutationsStats.addValue(reproductionStats.activationMutations().get());
         deleteLinkMutationsStats.addValue(reproductionStats.deleteLinkMutations().get());
+        deleteNodeMutationsStats.addValue(reproductionStats.deleteNodeMutations().get());
+        reOrientLinkMutationsStats.addValue(reproductionStats.reOrientLinkMutations().get());
     }
 
     /**
@@ -374,5 +388,13 @@ public class EvolutionStats implements Serializable {
 
     public Map<Integer, DescriptiveStatistics> getSpeciesMeanComplexityStats() {
         return speciesMeanComplexityStats;
+    }
+
+    public List<Boolean> getSearchPhases() {
+        return searchPhases;
+    }
+
+    public Map<Integer, List<Boolean>> getSpeciesSearchPhases() {
+        return speciesSearchPhases;
     }
 }

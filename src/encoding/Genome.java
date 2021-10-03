@@ -255,34 +255,34 @@ public class Genome implements Comparable<Genome>, Serializable {
 
         // Filter all links between hidden nodes
         // (Keep a single hidden layer: input->hidden, hidden->output only)
-        if (PRNG.nextDouble() < 1 - config.linksBetweenHiddenNodesRate())
+        if (PRNG.nextDouble() < 1 - config.linksBetweenHiddenNodesProportion())
             possibleLinks.removeIf(link ->
                     getNodeGeneById(link.getSource()).getType() == NodeType.HIDDEN &&
                             getNodeGeneById(link.getDestination()).getType() == NodeType.HIDDEN);
 
         // Filter hidden node loops
-        if (PRNG.nextDouble() < 1 - config.hiddenLoopLinksRate())
+        if (PRNG.nextDouble() < 1 - config.hiddenLoopLinksProportion())
             possibleLinks.removeIf(link -> (link.getSource() == link.getDestination() &&
                     getNodeGeneById(link.getSource()).getType() == NodeType.HIDDEN));
 
         // Filter output node loops
-        if (PRNG.nextDouble() < 1 - config.outputLoopLinksRate())
+        if (PRNG.nextDouble() < 1 - config.outputLoopLinksProportion())
             possibleLinks.removeIf(link -> link.getSource() == link.getDestination() &&
                     getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT);
 
         // Filter output to hidden
-        if (PRNG.nextDouble() < 1 - config.outputToHiddenLinksRate())
+        if (PRNG.nextDouble() < 1 - config.outputToHiddenLinksProportion())
             possibleLinks.removeIf(link -> getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT &&
                     getNodeGeneById(link.getDestination()).getType() == NodeType.HIDDEN);
 
         // Filter output to output
-        if (PRNG.nextDouble() < 1 - config.outputToOutputLinksRate())
+        if (PRNG.nextDouble() < 1 - config.outputToOutputLinksProportion())
             possibleLinks.removeIf(link -> getNodeGeneById(link.getSource()).getType() == NodeType.OUTPUT &&
                     getNodeGeneById(link.getDestination()).getType() == NodeType.OUTPUT &&
                     link.getSource() != link.getDestination());
 
         // Filter hidden to hidden recurrent
-        if (PRNG.nextDouble() < 1 - config.hiddenToHiddenBackwardLinksRate())
+        if (PRNG.nextDouble() < 1 - config.hiddenToHiddenBackwardLinksProportion())
             possibleLinks.removeIf(link -> {
                 NodeGene source = getNodeGeneById(link.getSource());
                 NodeGene destination = getNodeGeneById(link.getDestination());
@@ -292,7 +292,7 @@ public class Genome implements Comparable<Genome>, Serializable {
             });
 
         // Filter hidden to hidden, same distance from output (same level)
-        if (PRNG.nextDouble() < 1 - config.hiddenToHiddenSameLevelLinksRate())
+        if (PRNG.nextDouble() < 1 - config.hiddenToHiddenSameLevelLinksProportion())
             possibleLinks.removeIf(link -> {
                 NodeGene source = getNodeGeneById(link.getSource());
                 NodeGene destination = getNodeGeneById(link.getDestination());
@@ -608,7 +608,7 @@ public class Genome implements Comparable<Genome>, Serializable {
                 }
 
             if (!nodeFound) {
-                System.err.println("Nodes: A node is left without any connection");
+                System.err.println("Nodes: A node is left without any connection\n" + this.toConciseString());
                 break;
             }
         }
@@ -806,7 +806,7 @@ public class Genome implements Comparable<Genome>, Serializable {
      * @param nodeGene The concerned node gene
      * @return A list of node genes that represent link destinations to the given node
      */
-    private List<NodeGene> getNextNodesConnectedTo(NodeGene nodeGene) {
+    public List<NodeGene> getNextNodesConnectedTo(NodeGene nodeGene) {
 
         List<NodeGene> nextNodes = new ArrayList<>();
 
@@ -835,6 +835,66 @@ public class Genome implements Comparable<Genome>, Serializable {
         }
 
         return previousNodes;
+    }
+
+    /**
+     * Retrieves the list of outgoing link genes from the given node gene.
+     *
+     * @param nodeGene A node gene in this genome
+     * @param enabledOnly If true, return only enabled outgoing links
+     * @return A list of outgoing link genes
+     */
+    public List<LinkGene> getOutgoingLinksFrom(NodeGene nodeGene, boolean enabledOnly) {
+
+        List<LinkGene> outgoingLinks = new ArrayList<>();
+
+        for (LinkGene linkGene : linkGenes)
+            if (linkGene.getSourceNodeId() == nodeGene.getId())
+                if (enabledOnly) {
+                    if (linkGene.isEnabled()) outgoingLinks.add(linkGene);
+                } else
+                    outgoingLinks.add(linkGene);
+
+        return outgoingLinks;
+    }
+
+    /**
+     * Retrieves a list of incoming link genes relative to the given node gene.
+     *
+     * @param nodeGene A node gene in this genome
+     * @param enabledOnly If true, return only enabled incoming links
+     * @return A list of incoming link genes
+     */
+    public List<LinkGene> getIncomingLinksTo(NodeGene nodeGene, boolean enabledOnly) {
+
+        List<LinkGene> incomingLinks = new ArrayList<>();
+
+        for (LinkGene linkGene : linkGenes)
+            if (linkGene.getDestinationNodeId() == nodeGene.getId())
+                if (enabledOnly) {
+                    if (linkGene.isEnabled()) incomingLinks.add(linkGene);
+                } else
+                    incomingLinks.add(linkGene);
+
+        return incomingLinks;
+    }
+
+    /**
+     * Retrieve the link gene represented by the given simple link if it exists in this genome. Returns null
+     * if the link doesn't exist.
+     *
+     * @param link A simple link representing source and destination of the wanted link
+     * @return The link gene represented by the simple link or null if it does not exist
+     */
+    public LinkGene getLinkGeneFromLink(Link link) {
+
+        for (LinkGene linkGene : linkGenes) {
+            if (linkGene.getSourceNodeId() == link.getSource()
+                    && linkGene.getDestinationNodeId() == link.getDestination())
+                return linkGene;
+        }
+
+        return null;
     }
 
     /**

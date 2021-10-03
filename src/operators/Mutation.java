@@ -11,7 +11,9 @@ import innovation.InnovationDB;
 import util.Link;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Mutation operators are hosted in this class as a collection of static methods.
@@ -131,6 +133,9 @@ public class Mutation {
         // TODO Heavily mutate genes in the tail of the chromosome (less time-tested)
         for (LinkGene linkGene : mutatedGenome.getEnabledLinkGenes()) {
 
+            if (PRNG.nextDouble() < 1 - config.mutateWeightProportion())
+                return genome;
+
             // A 50/50 chance to use more sever parameters. (As used in Stanley's NEAT implementation)
             if (PRNG.nextBoolean()) { // Severe
                 replacementProbability = 0.9;
@@ -144,11 +149,15 @@ public class Mutation {
             double chance = PRNG.nextDouble();
 
             // Depending on chance, either perturb the weight, replace it entirely by a new weight, or leave it
-            if (chance < perturbationProbability)
+            if (chance < perturbationProbability) {
                 // Perturb: Add a fraction of a random weight to the current weight
-                linkGene.setWeight(linkGene.getWeight() +
-                        (PRNG.nextWeight(innovationDB.getWeightRangeMin(), innovationDB.getWeightRangeMax()) *
-                                PRNG.nextDouble() * PRNG.nextDouble()/*config.weightPerturbationStrength()*/));
+                if (PRNG.nextDouble() < config.gaussianWeightPerturbationProportion())
+                    linkGene.setWeight(linkGene.getWeight() +
+                            PRNG.nextGaussian(config.gaussianWeightPerturbationSigma()));
+                else
+                    linkGene.setWeight(linkGene.getWeight() +
+                            PRNG.nextWeight(-1, 1) * config.weightPerturbationStrength());
+            }
             else if (chance < replacementProbability)
                 // Replace weight: generate a new random weight
                 linkGene.setWeight(PRNG.nextWeight(innovationDB.getWeightRangeMin(),
@@ -236,11 +245,11 @@ public class Mutation {
      *
      * @param genome The genome to mutate
      * @param innovationDB The innovation database
-     * @param mutateActivationRate The percent of node genes to mutate within the genome
+     * @param mutateActivationProportion The percent of node genes to mutate within the genome
      * @param allowedActivations A comma separated String representing the activation types allowed for mutation
      * @return A mutated Genome
      */
-    public static Genome mutateActivationType(Genome genome, InnovationDB innovationDB, double mutateActivationRate,
+    public static Genome mutateActivationType(Genome genome, InnovationDB innovationDB, double mutateActivationProportion,
                                               String allowedActivations) {
 
         // 1. Clone the genome
@@ -250,9 +259,9 @@ public class Mutation {
         List<NodeGene> mutableNodeGenes = new ArrayList<>(mutatedGenome.getHiddenNodeGenes());
         mutableNodeGenes.addAll(mutatedGenome.getOutputNodeGenes());
 
-        // 3. Mutate the node genes according to mutateActivationRate
+        // 3. Mutate the node genes according to mutateActivationProportion
         for (NodeGene mutableNodeGene : mutableNodeGenes) {
-            if (PRNG.nextDouble() < mutateActivationRate)
+            if (PRNG.nextDouble() < mutateActivationProportion)
                 mutableNodeGene.setActivationFunction(ActivationType.getRandomType(allowedActivations));
         }
 
@@ -260,29 +269,182 @@ public class Mutation {
         return mutatedGenome;
     }
 
-    // TODO WIP : Deletion mutation for phased evolution
-
+    /**
+     * Performs a subtractive mutation by deleting a random link gene from the genome. After deletion the genome is
+     * checked for dangling nodes which will be removed when found.
+     *
+     * @param genome The genome to mutate
+     * @param innovationDB The innovation database
+     * @return A mutated genome
+     */
     public static Genome deleteLink(Genome genome, InnovationDB innovationDB) {
 
         Genome mutatedGenome = new Genome(genome, innovationDB);
+        List<LinkGene> enabledLinkGenes = mutatedGenome.getEnabledLinkGenes();
 
-        if (mutatedGenome.getLinkGenes().size() < 2)
-            return mutatedGenome;
+        if (enabledLinkGenes.size() < 2)
+            return genome;
 
-        LinkGene deletedLink = mutatedGenome.getLinkGenes().remove(PRNG.nextInt(mutatedGenome.getLinkGenes().size()));
-
-        // NodeGene source = mutatedGenome.getNodeGeneById(deletedLink.getSourceNodeId());
-        // NodeGene destination = mutatedGenome.getNodeGeneById(deletedLink.getDestinationNodeId());
+        LinkGene selectedLink = enabledLinkGenes.get(PRNG.nextInt(enabledLinkGenes.size()));
+        mutatedGenome.getLinkGenes().remove(selectedLink);
 
         int danglingNodesFound;
         do {
             danglingNodesFound = mutatedGenome.fixDanglingNodes(innovationDB, 1.0);
         } while (danglingNodesFound > 0);
 
-        //mutatedGenome.fixDanglingNodes(innovationDB, 1.0);
+        return mutatedGenome;
+    }
+
+    /**
+     * A subtractive mutation that deletes a node from the genome. The deleted node must be either a single output or a
+     * single input node. New links are created between both ends of the deleted node to restore any connection path it
+     * participated in. Links to and from the deleted node are also deleted.
+     *
+     * @param genome The genome to mutate
+     * @param innovationDB The innovation database
+     * @return A mutated genome
+     */
+    public static Genome deleteNode(Genome genome, InnovationDB innovationDB) {
+
+        Genome mutatedGenome = new Genome(genome, innovationDB);
+
+        // 1. Seek nodes with a single incoming or outgoing link
+        List<NodeGene> singleOutputNodes = new ArrayList<>();
+        List<NodeGene> singleInputNodes = new ArrayList<>();
+        for (NodeGene hiddenNodeGene : mutatedGenome.getHiddenNodeGenes()) {
+
+            if (mutatedGenome.getOutgoingLinksFrom(hiddenNodeGene, true).size() == 1)
+                singleOutputNodes.add(hiddenNodeGene);
+
+            if (mutatedGenome.getIncomingLinksTo(hiddenNodeGene, true).size() == 1)
+                singleInputNodes.add(hiddenNodeGene);
+        }
+
+        // Select node type to delete:
+        boolean choice;
+        if (PRNG.nextBoolean()) { // Prioritize single output nodes
+            if (!singleOutputNodes.isEmpty()) choice = true;
+            else if (!singleInputNodes.isEmpty()) choice = false;
+            else return genome;
+        } else { // Prioritize single input nodes
+            if (!singleInputNodes.isEmpty()) choice = false;
+            else if (!singleOutputNodes.isEmpty()) choice = true;
+            else return genome;
+        }
+
+        // The node to delete
+        NodeGene selectedNode;
+
+        if (choice) { // Select a single output node
+
+            // Select a random single output node
+            selectedNode = singleOutputNodes.get(PRNG.nextInt(singleOutputNodes.size()));
+            // Retrieve the incoming and outgoing enabled links
+            List<LinkGene> outgoingLinks = mutatedGenome.getOutgoingLinksFrom(selectedNode, true);
+            List<LinkGene> incomingLinks = mutatedGenome.getIncomingLinksTo(selectedNode, true);
+            // Retrieve the next node
+            NodeGene nextNode = mutatedGenome.getNodeGeneById(outgoingLinks.get(0).getDestinationNodeId());
+
+            // Restore links between previous nodes and the next node
+            for (LinkGene incomingLink : incomingLinks) {
+                // First check if the link already exists
+                LinkGene linkGene = mutatedGenome.getLinkGeneFromLink(
+                        new Link(incomingLink.getSourceNodeId(), nextNode.getId()));
+
+                if (linkGene != null) { // The link exists, check if it's disabled and enable it
+                    if (!linkGene.isEnabled()) linkGene.enable();
+                } else { // The link does not exist, create a new one and add it to the genome
+                    LinkGene newLinkGene = new LinkGene(incomingLink.getSourceNodeId(), nextNode.getId(), innovationDB);
+                    mutatedGenome.addNewLink(newLinkGene);
+                }
+            }
+
+        } else { // Select a single input node
+
+            // Select a random single input node
+            selectedNode = singleInputNodes.get(PRNG.nextInt(singleInputNodes.size()));
+            // Retrieve the incoming and outgoing enabled links
+            List<LinkGene> outgoingLinks = mutatedGenome.getOutgoingLinksFrom(selectedNode, true);
+            List<LinkGene> incomingLinks = mutatedGenome.getIncomingLinksTo(selectedNode, true);
+            // Retrieve the previous node
+            NodeGene previousNode = mutatedGenome.getNodeGeneById(incomingLinks.get(0).getSourceNodeId());
+
+            // Restore link between the previous node and the next nodes
+            for (LinkGene outgoingLink : outgoingLinks) {
+                // Check if the link already exists
+                LinkGene linkGene = mutatedGenome.getLinkGeneFromLink(
+                        new Link(previousNode.getId(), outgoingLink.getDestinationNodeId()));
+
+                if (linkGene != null) { // The link exists, check if it's disabled and enable it
+                    if (!linkGene.isEnabled()) linkGene.enable();
+                } else { // The link does not exist, create a new one and add it to the genome
+                    LinkGene newLinkGene = new LinkGene(previousNode.getId(), outgoingLink.getDestinationNodeId(),
+                            innovationDB);
+                    mutatedGenome.addNewLink(newLinkGene);
+                }
+            }
+        }
+
+        // Remove the selected hidden node from the genome, also remove all links related to it
+        mutatedGenome.removeHiddenNode(selectedNode, true);
 
         return mutatedGenome;
     }
 
-    // TODO: Re-orient mutation, change the destination of a link from one node to another
+    /**
+     * A structural mutation that takes a genome and attempts to change the orientation of one of the links. The older
+     * link is disabled and a new link is created from the same node pointing to a different destination node.
+     *
+     * This is an EXPERIMENTAL mutation operator and not yet proven to have any benefit.
+     *
+     * @param genome The genome to mutate
+     * @param innovationDB The innovation database
+     * @param config The configuration instance that holds all parameter values
+     * @return A mutated genome
+     */
+    public static Genome reOrientLink(Genome genome, InnovationDB innovationDB, NEATConfig config) {
+
+        Genome mutatedGenome = new Genome(genome, innovationDB);
+
+        // No links to re-orient
+        if (mutatedGenome.getEnabledLinkGenes().isEmpty()) return genome;
+
+        // Retrieve the possible (not currently existing) prospective links between nodes
+        Set<Link> possibleLinks = mutatedGenome.generatePossibleLinks(config);
+
+        // Retrieve the ids of nodes that can be sources to possible new links
+        Set<Integer> nodeSources = new HashSet<>();
+        for (Link possibleLink : possibleLinks) nodeSources.add(possibleLink.getSource());
+
+        // Retrieve the existing links where the nodes in nodeSources are already sources
+        List<LinkGene> existingLinks = new ArrayList<>();
+        for (LinkGene linkGene : mutatedGenome.getEnabledLinkGenes())
+            if (nodeSources.contains(linkGene.getSourceNodeId()))
+                existingLinks.add(linkGene);
+
+        // No link to re-orient
+        if (existingLinks.isEmpty()) return genome;
+
+        // Get a random link from the set of list of existing links for nodes that can be sources to alternative links
+        LinkGene removedLink = existingLinks.get(PRNG.nextInt(existingLinks.size()));
+        // remove or disable the link from the genome's link genes
+        // mutatedGenome.getLinkGenes().remove(removedLink);
+        removedLink.disable();
+
+        // Retrieve the alternative links that can start from the source node of the removed link
+        List<Link> alternativeLinks = new ArrayList<>();
+        for (Link possibleLink : possibleLinks)
+            if (possibleLink.getSource() == removedLink.getSourceNodeId())
+                alternativeLinks.add(possibleLink);
+
+        // Get a random alternative link
+        Link newLink = alternativeLinks.get(PRNG.nextInt(alternativeLinks.size()));
+        // Create the new link gene and add it to the genome
+        LinkGene newLinkGene = new LinkGene(newLink.getSource(), newLink.getDestination(), innovationDB);
+        mutatedGenome.addNewLink(newLinkGene);
+
+        return mutatedGenome;
+    }
+
 }

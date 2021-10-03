@@ -67,6 +67,7 @@ public class ANEAT {
             saveBestGenome(baseFileName);
         }
         saveStats(baseFileName);
+        System.gc();
     }
 
     /**
