@@ -3,12 +3,9 @@ package engine.stats;
 import encoding.Genome;
 import engine.Population;
 import engine.Species;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import util.ObjectSaver;
 
-import java.io.FileWriter;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
@@ -23,13 +20,13 @@ public class EvolutionStats implements Serializable {
     private static final long serialVersionUID = 1L;
 
     // Population Fitness Statistics (min/max/mean... fitness observed in genomes in each generation, ...)
-    private final List<DescriptiveStatistics> genomesFitnessStats = new ArrayList<>();
+    private final List<DescriptiveStatistics> populationFitnessStats = new ArrayList<>();
 
     // Population hidden nodes' statistics (min/max/mean... nodes number observed in genomes in each generation,...)
-    private final List<DescriptiveStatistics> genomesNodesStats = new ArrayList<>();
+    private final List<DescriptiveStatistics> populationNodesStats = new ArrayList<>();
 
     // Population link' statistics (min/max/mean...links observed in genomes in each generation,...)
-    private final List<DescriptiveStatistics> genomesLinksStats = new ArrayList<>();
+    private final List<DescriptiveStatistics> populationLinksStats = new ArrayList<>();
 
     // Number of unique genomes observed so far
     private final Set<Integer> genomeIds = new HashSet<>();
@@ -114,7 +111,7 @@ public class EvolutionStats implements Serializable {
             genomeIds.add(genome.getId());
         }
 
-        genomesFitnessStats.add(currentFitnessStats);
+        populationFitnessStats.add(currentFitnessStats);
     }
 
     /**
@@ -135,8 +132,8 @@ public class EvolutionStats implements Serializable {
             currentLinksStats.addValue(genome.getLinkGenes().size());
         }
 
-        genomesNodesStats.add(currentNodesStats);
-        genomesLinksStats.add(currentLinksStats);
+        populationNodesStats.add(currentNodesStats);
+        populationLinksStats.add(currentLinksStats);
 
         // Number of distinct nodes/links emerging in each generation (cumulating)
         nodeCumulateCountStats.addValue(population.getInnovations().getHiddenNodeIds().size());
@@ -253,29 +250,6 @@ public class EvolutionStats implements Serializable {
         return ObjectSaver.loadFromFile(filePath, EvolutionStats.class);
     }
 
-    /**
-     * TODO Elaborate a CSV report
-     * @param filePath
-     */
-    public void saveAsCSV(String filePath) {
-        try (CSVPrinter csvPrinter = new CSVPrinter(new FileWriter(filePath), CSVFormat.EXCEL)) {
-            csvPrinter.printRecord("gen", "max", "min", "mean", "geoMean", "median", "variance", "sd", "sum");
-            for (int i = 0; i < genomesFitnessStats.size(); i++) {
-                csvPrinter.printRecord(i+1,
-                        genomesFitnessStats.get(i).getMax(),
-                        genomesFitnessStats.get(i).getMin(),
-                        genomesFitnessStats.get(i).getMean(),
-                        genomesFitnessStats.get(i).getGeometricMean(),
-                        genomesFitnessStats.get(i).getPercentile(0.5),
-                        genomesFitnessStats.get(i).getPopulationVariance(),
-                        genomesFitnessStats.get(i).getStandardDeviation(),
-                        genomesFitnessStats.get(i).getSum());
-            }
-        } catch (Exception exception) {
-            exception.printStackTrace();
-        }
-    }
-
     /********************** Getters ***********************/
 
     public Map<Integer, List<DescriptiveStatistics>> getSpeciesFitnessStats() {
@@ -366,20 +340,20 @@ public class EvolutionStats implements Serializable {
         return speciesLinksStats;
     }
 
-    public List<DescriptiveStatistics> getGenomesFitnessStats() {
-        return genomesFitnessStats;
+    public List<DescriptiveStatistics> getPopulationFitnessStats() {
+        return populationFitnessStats;
     }
 
     public Set<Integer> getGenomeIds() {
         return genomeIds;
     }
 
-    public List<DescriptiveStatistics> getGenomesLinksStats() {
-        return genomesLinksStats;
+    public List<DescriptiveStatistics> getPopulationLinksStats() {
+        return populationLinksStats;
     }
 
-    public List<DescriptiveStatistics> getGenomesNodesStats() {
-        return genomesNodesStats;
+    public List<DescriptiveStatistics> getPopulationNodesStats() {
+        return populationNodesStats;
     }
 
     public DescriptiveStatistics getMeanComplexityStats() {

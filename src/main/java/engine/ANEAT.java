@@ -2,7 +2,10 @@ package engine;
 
 import encoding.Genome;
 import engine.stats.EvolutionStats;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 
+import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -38,12 +41,16 @@ public class ANEAT {
      * evolution from
      * @param configFile The path to a NEATConfig parameter file
      * @param populationFile The population file to continue evolution from
+     * @param statsFile The evolution stats file to continue updating
      */
-    public ANEAT(String configFile, String populationFile) {
+    public ANEAT(String configFile, String populationFile, String statsFile) {
         config = new NEATConfig(configFile);
+        System.out.println("Loading files ...");
         population = Population.readFromFile(populationFile);
-        // TODO Load from file
-        evolutionStats = new EvolutionStats();
+        if (statsFile != null)
+            evolutionStats = EvolutionStats.readFromFile(statsFile);
+        else
+            evolutionStats = new EvolutionStats();
     }
 
     /**
@@ -108,14 +115,15 @@ public class ANEAT {
     }
 
     /**
-     * Saves the evolution stats instance to a file on the disk using the given path.
+     * Saves the evolution stats instance to a file on the disk using the given path. Also saves a CSV short stats
+     * version
      * @param baseFileName Basic file path to save to
      */
     private void saveStats(String baseFileName) {
 
         if (baseFileName != null) {
+            saveCSVReport(baseFileName + "Stats.csv", evolutionStats);
             evolutionStats.saveToFile(baseFileName + "Stats");
-            evolutionStats.saveAsCSV(baseFileName + "Stats.csv");
         }
     }
 
@@ -136,16 +144,35 @@ public class ANEAT {
     }
 
     /**
+     * TODO Elaborate a CSV report
+     * @param filePath
+     */
+    public void saveCSVReport(String filePath, EvolutionStats stats) {
+        try (CSVPrinter csvPrinter = new CSVPrinter(new FileWriter(filePath), CSVFormat.EXCEL)) {
+            csvPrinter.printRecord("gen", "max", "min", "mean", "geoMean", "median", "variance", "sd", "sum");
+            for (int i = 0; i < stats.getPopulationFitnessStats().size(); i++) {
+                csvPrinter.printRecord(i+1,
+                        stats.getPopulationFitnessStats().get(i).getMax(),
+                        stats.getPopulationFitnessStats().get(i).getMin(),
+                        stats.getPopulationFitnessStats().get(i).getMean(),
+                        stats.getPopulationFitnessStats().get(i).getGeometricMean(),
+                        stats.getPopulationFitnessStats().get(i).getPercentile(0.5),
+                        stats.getPopulationFitnessStats().get(i).getPopulationVariance(),
+                        stats.getPopulationFitnessStats().get(i).getStandardDeviation(),
+                        stats.getPopulationFitnessStats().get(i).getSum());
+            }
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    /**
      * Returns the best genome in the current population
      *
      * @return The best genome in the population
      */
     public Genome getBestGenome() {
         return population.getBestGenome();
-    }
-
-    public Population getPopulation() {
-        return population;
     }
 
     public EvolutionStats getEvolutionStats() {
