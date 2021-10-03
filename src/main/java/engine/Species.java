@@ -5,11 +5,11 @@ import engine.stats.ReproductionStats;
 import innovation.InnovationDB;
 import operators.Crossover;
 import operators.Mutation;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.DoubleSummaryStatistics;
 import java.util.List;
 
 /**
@@ -50,7 +50,7 @@ public class Species implements Comparable<Species>, Serializable {
     // The age of the species at which the last transition to simplifying phase happened
     private int lastTransitionAge;
     // Summary statistics for the mean complexity of the species
-    private final DoubleSummaryStatistics complexityStats = new DoubleSummaryStatistics();
+    private final SummaryStatistics complexityStats = new SummaryStatistics();
 
     /**
      * Creates a new Species using a given Genome, which becomes the leader of the new species
@@ -345,13 +345,13 @@ public class Species implements Comparable<Species>, Serializable {
         double meanComplexity = meanComplexity();
 
         if (age == 0) {
-            complexityStats.accept(meanComplexity);
+            complexityStats.addValue(meanComplexity);
             pruneThreshold = meanComplexity + config.meanComplexityThreshold();
         }
 
-        double previousMeanComplexityAvg = complexityStats.getAverage();
+        double previousMeanComplexityAvg = complexityStats.getMean();
 
-        if (age >= 1) complexityStats.accept(meanComplexity);
+        if (age >= 1) complexityStats.addValue(meanComplexity);
 
         if (!simplifyingPhase) {
             if ((meanComplexity > pruneThreshold) && (staleness > config.minStaleComplexifyGenerations())) {
@@ -364,7 +364,7 @@ public class Species implements Comparable<Species>, Serializable {
 
         else {
             if (((age - lastTransitionAge) >= config.minSimplifyGenerations()) && (meanComplexity < pruneThreshold)
-                    && (complexityStats.getAverage() >= previousMeanComplexityAvg)) {
+                    && (complexityStats.getMean() >= previousMeanComplexityAvg)) {
                 // System.out.println(age + " Switching --> Complexifying " + meanComplexity + " < " + pruneThreshold
                 //         + " , S:" + id);
 

@@ -4,12 +4,12 @@ import encoding.Genome;
 import engine.stats.EvolutionStats;
 import engine.stats.ReproductionStats;
 import innovation.InnovationDB;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import util.ObjectSaver;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.DoubleSummaryStatistics;
 import java.util.List;
 
 /**
@@ -54,7 +54,7 @@ public class Population implements Serializable {
     // The last population age at which a complexifying to simplifying phase occurred
     private int lastTransitionAge;
     // Summary statistics for population complexity across the generations
-    private final DoubleSummaryStatistics complexityStats = new DoubleSummaryStatistics();
+    private final SummaryStatistics complexityStats = new SummaryStatistics();
 
 
     /**
@@ -343,14 +343,14 @@ public class Population implements Serializable {
         // In the first generation determine the initial pruning threshold and add mean complexity to summary stats obj
         if (age == 0) {
             pruneThreshold = meanComplexity + config.meanComplexityThreshold();
-            complexityStats.accept(meanComplexity);
+            complexityStats.addValue(meanComplexity);
         }
 
         // Compute the average of previous complexity values
-        double previousMeanComplexityAvg = complexityStats.getAverage();
+        double previousMeanComplexityAvg = complexityStats.getMean();
 
         // Add current mean complexity to the summary statistics object after the first generation
-        if (age >= 1) complexityStats.accept(meanComplexity);
+        if (age >= 1) complexityStats.addValue(meanComplexity);
 
         // In case we're at the complexifying phase
         if (!simplifyingPhase) {
@@ -369,7 +369,7 @@ public class Population implements Serializable {
         else {
             // Check if it's possible to transition to the complexifying phase
             if (((age - lastTransitionAge) >= config.minSimplifyGenerations()) && (meanComplexity < pruneThreshold)
-                    && (complexityStats.getAverage() >= previousMeanComplexityAvg)) {
+                    && (complexityStats.getMean() >= previousMeanComplexityAvg)) {
                 // System.out.println(age + " Switching --> Complexifying " + meanComplexity + " < " + pruneThreshold);
                 // Switch to complexifying phase
                 simplifyingPhase = false;
