@@ -46,16 +46,21 @@ This snippet will run the NEAT evolution for 1000 generations using the configur
 for the XOR example are given in [`xor\xorConfigs.cfg`](https://github.com/Acemad/alphaNEAT/blob/master/xor/xorConfigs.cfg).
 
 ```java
+import encoding.Genome;
 import engine.ANEAT;
 import examples.XORExample;
 
-public class example {
-    
+public class Example {
+
     public static void main(String[] args) {
         String configPath = "path/to/neat/config/file";
         int generations = 1000;
+
         ANEAT aneat = new ANEAT(configPath);
         aneat.run(XORExample::evalXOR, generations, null);
+        
+        // Retrieve best genome
+        Genome bestGenome = aneat.getBestGenome();
     }
 }
 ```
