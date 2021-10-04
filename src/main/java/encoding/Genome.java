@@ -423,12 +423,13 @@ public class Genome implements Comparable<Genome>, Serializable {
 
         // Compute the final compatibility score, and return the decision.
         // Note: Compat score range should be: [0, C1 + 2C2] when weights are in the range [-1, 1], and with normalization
-        double score = unmatchedCoeff * (unmatchedLinks / maxLength) + weightDiffCoeff * (totalWeightDiff / matchedLinks);
+        double score = unmatchedCoeff * (unmatchedLinks/* / maxLength*/) + weightDiffCoeff * (totalWeightDiff / matchedLinks);
 
         // Add the activation difference term if enabled. Max score would become C1+2C2+C3
         if (activationDiffCoeff > 0)
              score += activationDiffCoeff * (activationDiff / matchedNodes);
 
+        // System.out.println("CompatScore: " + score + " UnmatchedLinks: " + unmatchedLinks + " TotWeightDiff: " + (totalWeightDiff / matchedLinks));
         return score < compatibilityThreshold;
     }
 
