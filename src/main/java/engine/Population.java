@@ -135,11 +135,12 @@ public class Population implements Serializable {
         // Aims to increase diversity
         if (config.aimForSpeciesNumber() && age > 1) {
             if (getSpeciesCount() < config.speciesNumberTarget())
-                config.incrementCompatibilityThresholdBy(-0.25); //0.4 looks good, 0.3 is better
+                config.incrementCompatibilityThresholdBy(-config.compatibilityThresholdIncrement());
             else if (getSpeciesCount() > config.speciesNumberTarget())
-                config.incrementCompatibilityThresholdBy(0.25);
+                config.incrementCompatibilityThresholdBy(config.compatibilityThresholdIncrement());
 
-            if (config.compatibilityThreshold() < 0.25) config.setCompatibilityThreshold(0.25);
+            if (config.compatibilityThreshold() < config.compatibilityThresholdIncrement())
+                config.setCompatibilityThreshold(config.compatibilityThresholdIncrement());
         }
 
         // Clear all members of the species from the previous generations. The leader of the species is kept in his own

@@ -52,6 +52,7 @@ public class NEATConfig {
     private double          compatibilityThreshold;     // Score threshold over which two genomes are incompatible
     private boolean         aimForSpeciesNumber;        // Aim for a fixed number of species (dynamic threshold)
     private int             speciesNumberTarget;        // Number of species to aim for if the above is true
+    private double          compatibilityThresholdIncrement; // The number by which the threshold is increased/decreased
 
     /* Mating parameters *********************************************************************************************/
 
@@ -165,6 +166,7 @@ public class NEATConfig {
         compatibilityThreshold                 = Double.parseDouble(configs.getProperty("compatibilityThreshold"));
         aimForSpeciesNumber                    = Boolean.parseBoolean(configs.getProperty("aimForSpeciesNumber"));
         speciesNumberTarget                    = Integer.parseInt(configs.getProperty("speciesNumberTarget"));
+        compatibilityThresholdIncrement        = Double.parseDouble(configs.getProperty("compatibilityThresholdIncrement"));
 
         /* Mating parameters *****************************************************************************************/
 
@@ -322,6 +324,7 @@ public class NEATConfig {
                 ", compatibilityThreshold=" + compatibilityThreshold +
                 ", aimForSpeciesNumber=" + aimForSpeciesNumber +
                 ", speciesNumberTarget=" + speciesNumberTarget +
+                ", compatibilityThresholdIncrement=" + compatibilityThresholdIncrement +
                 ", mateOnlyProbability=" + mateOnlyProbability +
                 ", mateAveragingProbability=" + mateAveragingProbability +
                 ", mateKeepGeneDisabledProbability=" + mateKeepGeneDisabledProbability +
@@ -357,6 +360,7 @@ public class NEATConfig {
                 ", fixDanglingNodes=" + fixDanglingNodes +
                 ", fixDanglingNodesStrict=" + fixDanglingNodesStrict +
                 ", danglingRemoveProbability=" + danglingRemoveProbability +
+                ", evaluationThreads=" + evaluationThreads +
                 '}';
     }
 
@@ -592,6 +596,10 @@ public class NEATConfig {
 
     public int evaluationThreads() {
         return evaluationThreads;
+    }
+
+    public double compatibilityThresholdIncrement() {
+        return compatibilityThresholdIncrement;
     }
 
 
