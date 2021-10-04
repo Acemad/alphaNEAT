@@ -49,7 +49,7 @@ for the XOR example are given in [`xor\xorConfigs.cfg`](https://github.com/Acema
 import engine.ANEAT;
 import examples.XORExample;
 
-public class example {
+public class Example {
     
     public static void main(String[] args) {
         String configPath = "path/to/neat/config/file";
