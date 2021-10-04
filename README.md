@@ -73,6 +73,7 @@ For more details concerning saving/resuming evolution please consult [`XORExampl
 - Transition from Java's serialization/deserialization format to more lightweight formats (json, yaml).
 - Include example evaluation functions for more problem domains (eg. pole balancing).
 - General code improvements and optimizations.
+- Although alphaNEAT was thoroughly tested, it would be great to add formal JUnit tests
 
 ## Problems
 

@@ -7,7 +7,7 @@
 
     <groupId>io.acemad</groupId>
     <artifactId>alpha-neat</artifactId>
-    <version>1.0</version>
+    <version>1.0.1</version>
 
     <properties>
         <maven.compiler.source>15</maven.compiler.source>
