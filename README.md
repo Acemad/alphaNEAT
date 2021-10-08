@@ -23,6 +23,9 @@ operators to work on different topologies. For an in-depth description consult t
 - Support for concurrent evaluation of networks across multiple threads.
 - Continuous computation of evolution statistics and support for saving stats in CSV format.
 - Possibility to start evolution with disconnected input neurons to force feature selection.
+- Multi-interrupting add-node mutation: adding a node involves disabling a link and adding a new node and two links 
+in its place. If the disabled link becomes enabled again it can get re-interrupted again with a new *different* node 
+and new *different* links.
 - Activation mutation operator *(Experimental)*: mutate nodes' activation functions to one of the allowed functions.
 - Link reorientation mutation *(Experimental)*: mutate a network by reorienting one of the links.
 - Link filtering: impose restrictions on the proportions of each link type (loops, recurrent).
